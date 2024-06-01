@@ -20,8 +20,14 @@ class Embeddings(SQLModel, table=True):
 
 engine = create_engine("postgresql+psycopg2://postgres:mysecretpassword@localhost:5432")
 
-with engine.connect() as con:
-    con.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    con.commit()
 
-SQLModel.metadata.create_all(engine)
+def create_db_and_tables():
+    with engine.connect() as con:
+        con.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        con.commit()
+
+    SQLModel.metadata.create_all(engine)
+
+
+if __name__ == "__main__":
+    create_db_and_tables()

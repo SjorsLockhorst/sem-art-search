@@ -1,7 +1,8 @@
 import httpx
+from sqlmodel import Session
 import asyncio
 from enum import StrEnum
-from src.models import ArtObject
+from src.models import ArtObject, engine
 
 
 class DescriptionLanguages(StrEnum):
@@ -26,9 +27,10 @@ class Client:
 
         return results
 
-    # TODO: Implement saving to a sqlite file
-    def _save_objects_to_database(self):
-        pass
+    def _save_objects_to_database(self, art_objects: list[ArtObject]):
+        with Session(engine) as session:
+            session.bulk_save_objects(art_objects)
+            session.commit()
 
     # TODO: Implement this
     def _get_objects_with_known_artist(self):
@@ -330,7 +332,7 @@ class Client:
                     total_retrieved += len(results)
                     print(f"total fetched so far: {total_retrieved}")
 
-                # TODO: Insert in DB
+                self._save_objects_to_database(batch_art_objects)
 
                 p += batch_size
                 if total_retrieved >= limit:

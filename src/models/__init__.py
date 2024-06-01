@@ -1,1 +1,1 @@
-from models import ArtObject, Embeddings
+from src.models.models import ArtObject, Embeddings, engine
