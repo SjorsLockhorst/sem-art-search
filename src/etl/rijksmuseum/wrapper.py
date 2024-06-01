@@ -1,31 +1,12 @@
 import httpx
 import asyncio
 from enum import StrEnum
+from src.models import ArtObject
 
 
 class DescriptionLanguages(StrEnum):
     NL = "nl"
     EN = "en"
-
-
-class ArtObject:
-    def __init__(
-        self,
-        id: str,
-        webImage: str | None,
-        longTitle: str,
-        principalOrFirstMaker: str,
-    ):
-        self.id = id
-        self.webImage = webImage
-        self.longTitle = longTitle
-        self.principalOrFirstMaker = principalOrFirstMaker
-
-    def __repr__(self):
-        return (
-            f"ArtObject(id={self.id}, webImage={self.webImage}, "
-            f"longTitle={self.longTitle}, principalOrFirstMaker={self.principalOrFirstMaker})"
-        )
 
 
 class Client:
@@ -178,10 +159,10 @@ class Client:
                 # Extract only the specified fields and construct an ArtObject
                 for result in results:
                     extracted_data = ArtObject(
-                        id=result.get("id"),
-                        webImage=result.get("webImage", {}).get("url"),
-                        longTitle=result.get("longTitle"),
-                        principalOrFirstMaker=result.get("principalOrFirstMaker"),
+                        original_id=result.get("id"),
+                        image_url=result.get("webImage", {}).get("url"),
+                        long_title=result.get("longTitle"),
+                        artist=result.get("principalOrFirstMaker"),
                     )
                     all_results.append(extracted_data)
 
@@ -335,17 +316,21 @@ class Client:
                     )
 
                 responses = await asyncio.gather(*tasks)
+                batch_art_objects = []
                 for results in responses:
                     for result in results:
                         extracted_data = ArtObject(
-                            id=result.get("id"),
-                            webImage=result.get("webImage", {}).get("url"),
-                            longTitle=result.get("longTitle"),
-                            principalOrFirstMaker=result.get("principalOrFirstMaker"),
+                            original_id=result.get("id"),
+                            image_url=result.get("webImage", {}).get("url"),
+                            long_title=result.get("longTitle"),
+                            artist=result.get("principalOrFirstMaker"),
                         )
                         all_results.append(extracted_data)
+                        batch_art_objects.append(extracted_data)
                     total_retrieved += len(results)
                     print(f"total fetched so far: {total_retrieved}")
+
+                # TODO: Insert in DB
 
                 p += batch_size
                 if total_retrieved >= limit:
