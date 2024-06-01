@@ -1,4 +1,5 @@
 import httpx
+import asyncio
 from enum import StrEnum
 
 
@@ -31,8 +32,21 @@ class Client:
     def __init__(self, language: DescriptionLanguages, api_key: str):
         self.url = f"https://www.rijksmuseum.nl/api/{language}/collection?key={api_key}&imgonly=True"
 
+    async def _get_art_object(
+        self, client: httpx.AsyncClient, url: str, params: httpx.QueryParams
+    ) -> list[object]:
+        r = await client.get(url, params=params)
+
+        if r.status_code != 200:
+            print(f"Error fetching results: {r.status_code}")
+
+        data = r.json()
+        results = data.get("artObjects", [])
+
+        return results
+
     # TODO: Implement saving to a sqlite file
-    def _save_objects_to_sqlite(self):
+    def _save_objects_to_database(self):
         pass
 
     # TODO: Implement this
@@ -138,6 +152,46 @@ class Client:
             "Gustav Schnitzler",
             "William England",
         ]
+        all_results = []
+        ps = 100  # Number of results per page. Cannot exceed 100
+
+        for artist in artists:
+            total_retrieved = 0
+            # TODO: Retrieve the limit from the API
+            limit = 0
+            p = 1  # Page index
+            while total_retrieved < limit:
+                print(
+                    f"Fetching {ps} objects on page {p} for artist {artist} - total fetched so far: {total_retrieved}"
+                )
+                params = {"ps": ps, "p": p, "principalMaker": artist}
+                response = httpx.get(self.url, params=params)
+                if response.status_code != 200:
+                    print(
+                        f"Error fetching results for {artist}: {response.status_code}"
+                    )
+                    break
+
+                data = response.json()
+                results = data.get("artObjects", [])
+
+                # Extract only the specified fields and construct an ArtObject
+                for result in results:
+                    extracted_data = ArtObject(
+                        id=result.get("id"),
+                        webImage=result.get("webImage", {}).get("url"),
+                        longTitle=result.get("longTitle"),
+                        principalOrFirstMaker=result.get("principalOrFirstMaker"),
+                    )
+                    all_results.append(extracted_data)
+
+                total_retrieved += len(results)
+
+                p += 1
+                if total_retrieved >= limit:
+                    break
+
+        return all_results
 
     # TODO: Implement this
     def _get_objects_with_unknown_artist(self):
@@ -246,10 +300,8 @@ class Client:
         ]
 
     # TODO: See if it makes sense to make this async to improve performance
-    def get_initial_10_000_objects(
-        self,
-    ) -> list[ArtObject]:
-        """Function used to retrieve the first 10_000 objects from the Rijksmuseum API.
+    async def get_initial_10_000_objects(self) -> list[ArtObject]:
+        """Function used to retrieve the first 10,000 objects from the Rijksmuseum API.
         The ps query parameter is used to set number of results per page, with a max of 100. The p query parameter is for navigating to the next page.
         Note that p * ps cannot exceed 10,000.
 
@@ -258,41 +310,46 @@ class Client:
         List[ArtObject]
             A list of ArtObjects containing the ID, image url, title and artist of the object
         """
-
         all_results = []
         ps = 100  # Number of results per page. Cannot exceed 100
         p = 1  # Page index
+        batch_size = 5
         total_retrieved = 0
         limit = 10_000
 
-        while total_retrieved < limit:
-            print(
-                f"Fetching {ps} objects on page {p} - total fetched so far: {total_retrieved}"
-            )
-            params = {"ps": ps, "p": p}
-            response = httpx.get(self.url, params=params)
-            if response.status_code != 200:
-                print(f"Error fetching results: {response.status_code}")
-                break
+        async with httpx.AsyncClient() as client:
+            while total_retrieved < limit:
+                tasks = []
 
-            data = response.json()
-            results = data.get("artObjects", [])
+                for i in range(batch_size):
+                    if total_retrieved + (i * ps) >= limit:
+                        break
+                    print(f"Fetching {ps} objects on page {p + i}")
+                    params = httpx.QueryParams({"p": p + i, "ps": ps})
+                    tasks.append(
+                        asyncio.ensure_future(
+                            self._get_art_object(
+                                client=client, url=self.url, params=params
+                            )
+                        )
+                    )
 
-            # Extract only the specified fields and construct an ArtObject
-            for result in results:
-                extracted_data = ArtObject(
-                    id=result.get("id"),
-                    webImage=result.get("webImage", {}).get("url"),
-                    longTitle=result.get("longTitle"),
-                    principalOrFirstMaker=result.get("principalOrFirstMaker"),
-                )
-                all_results.append(extracted_data)
+                responses = await asyncio.gather(*tasks)
+                for results in responses:
+                    for result in results:
+                        extracted_data = ArtObject(
+                            id=result.get("id"),
+                            webImage=result.get("webImage", {}).get("url"),
+                            longTitle=result.get("longTitle"),
+                            principalOrFirstMaker=result.get("principalOrFirstMaker"),
+                        )
+                        all_results.append(extracted_data)
+                    total_retrieved += len(results)
+                    print(f"total fetched so far: {total_retrieved}")
 
-            total_retrieved += len(results)
-
-            p += 1
-            if total_retrieved >= limit:
-                break
+                p += batch_size
+                if total_retrieved >= limit:
+                    break
 
         return all_results
 
