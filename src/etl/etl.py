@@ -1,8 +1,10 @@
-from dotenv import load_dotenv
 import asyncio
-from src.etl.rijksmuseum.wrapper import Client, DescriptionLanguages
 import os
+
+from dotenv import load_dotenv
+
 from src.etl.errors import MissingApiKeyError
+from src.etl.rijksmuseum.wrapper import Client, DescriptionLanguages
 
 load_dotenv()
 
@@ -14,8 +16,7 @@ async def main():
         raise MissingApiKeyError("No API Key found in the env variables")
 
     c = Client(language=DescriptionLanguages.NL, api_key=api_key)
-    art_objects = await c.get_initial_10_000_objects()
-
+    # art_objects = await c.get_initial_10_000_objects()
     # print(len(art_objects))
     # print(art_objects[0])
 

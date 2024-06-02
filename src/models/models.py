@@ -1,7 +1,8 @@
 from typing import Any
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, create_engine, text
-from sqlmodel import SQLModel, Field, Session
+from sqlmodel import Field, SQLModel
 
 
 class ArtObject(SQLModel, table=True):

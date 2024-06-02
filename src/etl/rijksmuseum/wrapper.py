@@ -1,7 +1,9 @@
-import httpx
-from sqlmodel import Session
 import asyncio
 from enum import StrEnum
+
+import httpx
+from sqlmodel import Session
+
 from src.models import ArtObject, engine
 
 
@@ -282,7 +284,6 @@ class Client:
             "mule (shoe)",
         ]
 
-    # TODO: See if it makes sense to make this async to improve performance
     async def get_initial_10_000_objects(self) -> list[ArtObject]:
         """Function used to retrieve the first 10,000 objects from the Rijksmuseum API.
         The ps query parameter is used to set number of results per page, with a max of 100. The p query parameter is for navigating to the next page.
