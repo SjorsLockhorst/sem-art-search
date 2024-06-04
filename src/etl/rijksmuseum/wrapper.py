@@ -1,10 +1,6 @@
 import asyncio
 from enum import StrEnum
-
-import httpx
-from sqlmodel import Session
-
-from src.models import ArtObject, engine
+from src.db.models import ArtObject
 
 
 class DescriptionLanguages(StrEnum):
