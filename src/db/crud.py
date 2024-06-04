@@ -1,7 +1,7 @@
 import torch
 
 from sqlmodel import Session
-from src.models import engine, Embeddings
+from src.db.models import engine, Embeddings
 
 def insert_batch_image_embeddings(
     batch_art_object_ids: list[int], batch_embeddings: torch.Tensor

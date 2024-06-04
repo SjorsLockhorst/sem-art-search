@@ -1,7 +1,7 @@
 import httpx
 import asyncio
 from enum import StrEnum
-from src.models import ArtObject
+from src.db.models import ArtObject
 
 
 class DescriptionLanguages(StrEnum):
