@@ -1,6 +1,9 @@
 import asyncio
 from enum import StrEnum
-from src.db.models import ArtObject
+
+import httpx
+from sqlmodel import Session
+from src.db.models import ArtObjects, engine
 
 
 class DescriptionLanguages(StrEnum):
@@ -25,7 +28,7 @@ class Client:
 
         return results
 
-    def _save_objects_to_database(self, art_objects: list[ArtObject]):
+    def _save_objects_to_database(self, art_objects: list[ArtObjects]):
         with Session(engine) as session:
             session.bulk_save_objects(art_objects)
             session.commit()
@@ -158,7 +161,7 @@ class Client:
 
                 # Extract only the specified fields and construct an ArtObject
                 for result in results:
-                    extracted_data = ArtObject(
+                    extracted_data = ArtObjects(
                         original_id=result.get("id"),
                         image_url=result.get("webImage", {}).get("url"),
                         long_title=result.get("longTitle"),
@@ -280,7 +283,7 @@ class Client:
             "mule (shoe)",
         ]
 
-    async def get_initial_10_000_objects(self) -> list[ArtObject]:
+    async def get_initial_10_000_objects(self) -> list[ArtObjects]:
         """Function used to retrieve the first 10,000 objects from the Rijksmuseum API.
         The ps query parameter is used to set number of results per page, with a max of 100. The p query parameter is for navigating to the next page.
         Note that p * ps cannot exceed 10,000.
@@ -318,7 +321,7 @@ class Client:
                 batch_art_objects = []
                 for results in responses:
                     for result in results:
-                        extracted_data = ArtObject(
+                        extracted_data = ArtObjects(
                             original_id=result.get("id"),
                             image_url=result.get("webImage", {}).get("url"),
                             long_title=result.get("longTitle"),

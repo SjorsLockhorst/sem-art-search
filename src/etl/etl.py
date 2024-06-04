@@ -16,9 +16,7 @@ async def main():
         raise MissingApiKeyError("No API Key found in the env variables")
 
     c = Client(language=DescriptionLanguages.NL, api_key=api_key)
-    art_objects = await c.get_initial_10_000_objects()
-    # print(len(art_objects))
-    # print(art_objects[0])
+    # art_objects = await c.get_initial_10_000_objects()
 
 
 if __name__ == "__main__":
