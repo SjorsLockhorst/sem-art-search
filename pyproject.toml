@@ -15,6 +15,8 @@ sqlmodel = "^0.0.18"
 pgvector = "^0.2.5"
 psycopg2 = "^2.9.9"
 pillow = "^10.3.0"
+torch = "^2.3.0"
+transformers = "^4.41.2"
 
 
 [build-system]
