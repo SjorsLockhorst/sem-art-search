@@ -1,7 +1,10 @@
-import httpx
 import asyncio
 from enum import StrEnum
-from src.db.models import ArtObject
+import httpx
+from loguru import logger
+
+from src.db.crud import save_objects_to_database
+from src.db.models import ArtObjects
 
 
 class DescriptionLanguages(StrEnum):
@@ -19,18 +22,14 @@ class Client:
         r = await client.get(url, params=params)
 
         if r.status_code != 200:
-            print(f"Error fetching results: {r.status_code}")
+            logger.error(f"Error fetching results: {r.status_code}")
 
         data = r.json()
         results = data.get("artObjects", [])
 
         return results
 
-    # TODO: Implement saving to a sqlite file
-    def _save_objects_to_database(self):
-        pass
-
-    # TODO: Implement this
+    # TODO: Implement this after MVP phase
     def _get_objects_with_known_artist(self):
         artists = [
             "George Hendrik Breitner",
@@ -142,13 +141,13 @@ class Client:
             limit = 0
             p = 1  # Page index
             while total_retrieved < limit:
-                print(
+                logger.info(
                     f"Fetching {ps} objects on page {p} for artist {artist} - total fetched so far: {total_retrieved}"
                 )
                 params = {"ps": ps, "p": p, "principalMaker": artist}
                 response = httpx.get(self.url, params=params)
                 if response.status_code != 200:
-                    print(
+                    logger.error(
                         f"Error fetching results for {artist}: {response.status_code}"
                     )
                     break
@@ -158,7 +157,7 @@ class Client:
 
                 # Extract only the specified fields and construct an ArtObject
                 for result in results:
-                    extracted_data = ArtObject(
+                    extracted_data = ArtObjects(
                         original_id=result.get("id"),
                         image_url=result.get("webImage", {}).get("url"),
                         long_title=result.get("longTitle"),
@@ -174,7 +173,7 @@ class Client:
 
         return all_results
 
-    # TODO: Implement this
+    # TODO: Implement this after MVP phase
     def _get_objects_with_unknown_artist(self):
         artist = "anonymous"
         object_types = [
@@ -280,11 +279,11 @@ class Client:
             "mule (shoe)",
         ]
 
-    # TODO: See if it makes sense to make this async to improve performance
-    async def get_initial_10_000_objects(self) -> list[ArtObject]:
-        """Function used to retrieve the first 10,000 objects from the Rijksmuseum API.
+    async def get_initial_10_000_objects(self) -> list[ArtObjects]:
+        """
+        Function used to retrieve the first 10_000 objects from the Rijksmuseum API.
         The ps query parameter is used to set number of results per page, with a max of 100. The p query parameter is for navigating to the next page.
-        Note that p * ps cannot exceed 10,000.
+        Note that p * ps cannot exceed 10_000.
 
         Returns
         -------
@@ -305,7 +304,7 @@ class Client:
                 for i in range(batch_size):
                     if total_retrieved + (i * ps) >= limit:
                         break
-                    print(f"Fetching {ps} objects on page {p + i}")
+                    logger.info(f"Fetching {ps} objects on page {p + i}")
                     params = httpx.QueryParams({"p": p + i, "ps": ps})
                     tasks.append(
                         asyncio.ensure_future(
@@ -319,7 +318,7 @@ class Client:
                 batch_art_objects = []
                 for results in responses:
                     for result in results:
-                        extracted_data = ArtObject(
+                        extracted_data = ArtObjects(
                             original_id=result.get("id"),
                             image_url=result.get("webImage", {}).get("url"),
                             long_title=result.get("longTitle"),
@@ -328,9 +327,9 @@ class Client:
                         all_results.append(extracted_data)
                         batch_art_objects.append(extracted_data)
                     total_retrieved += len(results)
-                    print(f"total fetched so far: {total_retrieved}")
+                    logger.info(f"total fetched so far: {total_retrieved}")
 
-                # TODO: Insert in DB
+                save_objects_to_database(batch_art_objects)
 
                 p += batch_size
                 if total_retrieved >= limit:

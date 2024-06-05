@@ -1,43 +1,100 @@
-from typing import Tuple, List
-
-import requests
+import asyncio
+from loguru import logger
+import httpx
+import torch
 from PIL import Image
 from transformers import AutoProcessor, CLIPModel
-import torch
+
+from src.db.crud import insert_batch_image_embeddings
+from src.etl.errors import EmbeddingError
+from src.etl.images import get_ids_and_images
 
 HF_BASE_URL = "openai/clip-vit-base-patch16"
 
-def get_device() -> str:
-    return "cuda" if torch.cuda.is_available() else "cpu"
 
-
-class ArtEmbedder():
+class ImageEmbedder:
     def __init__(self, hf_base_url: str = HF_BASE_URL):
-        self.device = get_device()
+        """
+        Initialize the ImageEmbedder with the given Hugging Face base URL.
+        """
+        self.device = self.get_device()
         self.processor = AutoProcessor.from_pretrained(hf_base_url)
         self.model = CLIPModel.from_pretrained(hf_base_url)
         self.model.to(self.device)
 
-    def process(self, images: Image | List[Image]):
+    @staticmethod
+    def get_device() -> str:
+        """
+        Return the device to be used (CUDA if available, otherwise CPU).
+        """
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _process(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
+        """
+        Process the input images to prepare them for embedding.
+        """
         return self.processor(images=images, return_tensors="pt")
-    
-    def embed(self, inputs: torch.Tensor):
+
+    def _embed(self, inputs: torch.Tensor) -> torch.Tensor:
+        """
+        Generate embeddings for the processed images.
+        """
         return self.model.get_image_features(**inputs)
 
-    def __call__(self, images: Image | List[Image]):
-        inputs = self.process(images)
-        inputs.to(self.device)
-        return self.embed(inputs)
+    def __call__(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
+        """
+        Call the ImageEmbedder with a list of images to get their embeddings.
+        """
+        try:
+            inputs = self._process(images)
+            inputs.to(self.device)
+            return self._embed(inputs)
+        except Exception as e:
+            raise EmbeddingError(msg=str(e))
 
 
+def get_images_embeddings(
+    images: list[tuple[int, Image.Image]],
+) -> list[tuple[int, torch.Tensor]]:
+    """
+    Generate embeddings for a list of images with their IDs.
+    """
+    ids, imgs = zip(*images)
+    image_embedder = ImageEmbedder()
+    embeddings = image_embedder(list(imgs))
 
-def get_img(url: str) -> Image:
-    return Image.open(requests.get(url, stream=True).raw)
+    if len(ids) != len(embeddings):
+        raise EmbeddingError(msg="Amount of IDs does not match amount of embeddings")
+
+    return list(zip(ids, embeddings))
+
+
+async def run_embed_stage(count: int, batch_size: int):
+    """
+    Main function to retrieve, embed, and store images in batches.
+
+    Args:
+        count (int): The total number of images to retrieve.
+        batch_size (int): The number of images to retrieve per batch.
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            for offset in range(0, count, batch_size):
+                ids_and_images = await get_ids_and_images(client, batch_size, offset)
+                ids_and_embeddings = get_images_embeddings(ids_and_images)
+                insert_batch_image_embeddings(ids_and_embeddings)
+                logger.info(
+                    f"Finished embedding of {len(ids_and_embeddings)} ArtObjects in batch starting at offset {offset}"
+                )
+    except EmbeddingError as e:
+        logger.error(f"Embedding Error: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise EmbeddingError(msg=str(e))
 
 
 if __name__ == "__main__":
-    TEST_IMG = "https://lh3.googleusercontent.com/J-mxAE7CPu-DXIOx4QKBtb0GC4ud37da1QK7CzbTIDswmvZHXhLm4Tv2-1H3iBXJWAW_bHm7dMl3j5wv_XiWAg55VOM=s0"
-    img = get_img(TEST_IMG)
-    art_embedder = ArtEmbedder()
-    print(art_embedder([img]))
-
+    count = 10
+    batch_size = 5
+    asyncio.run(run_embed_stage(count=count, batch_size=batch_size))
