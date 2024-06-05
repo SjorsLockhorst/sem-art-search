@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from loguru import logger
 from io import BytesIO
 from typing import List, Optional, Tuple
 
@@ -29,11 +29,9 @@ async def download_img(
         image = Image.open(BytesIO(response.content))
         return (id, image)
     except httpx.HTTPStatusError:
-        logging.error(f"Error fetching image for art object {id}, skipping image")
+        logger.error(f"Error fetching image for art object {id}, skipping image")
     except Exception as e:
-        logging.error(
-            f"Error processing image for art object {id}: {e}, skipping image"
-        )
+        logger.error(f"Error processing image for art object {id}: {e}, skipping image")
     return None
 
 

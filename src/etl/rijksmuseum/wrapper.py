@@ -1,8 +1,7 @@
 import asyncio
-import logging
 from enum import StrEnum
-
 import httpx
+from loguru import logger
 
 from src.db.crud import save_objects_to_database
 from src.db.models import ArtObjects
@@ -23,7 +22,7 @@ class Client:
         r = await client.get(url, params=params)
 
         if r.status_code != 200:
-            logging.error(f"Error fetching results: {r.status_code}")
+            logger.error(f"Error fetching results: {r.status_code}")
 
         data = r.json()
         results = data.get("artObjects", [])
@@ -142,13 +141,13 @@ class Client:
             limit = 0
             p = 1  # Page index
             while total_retrieved < limit:
-                logging.info(
+                logger.info(
                     f"Fetching {ps} objects on page {p} for artist {artist} - total fetched so far: {total_retrieved}"
                 )
                 params = {"ps": ps, "p": p, "principalMaker": artist}
                 response = httpx.get(self.url, params=params)
                 if response.status_code != 200:
-                    logging.error(
+                    logger.error(
                         f"Error fetching results for {artist}: {response.status_code}"
                     )
                     break
@@ -305,7 +304,7 @@ class Client:
                 for i in range(batch_size):
                     if total_retrieved + (i * ps) >= limit:
                         break
-                    logging.info(f"Fetching {ps} objects on page {p + i}")
+                    logger.info(f"Fetching {ps} objects on page {p + i}")
                     params = httpx.QueryParams({"p": p + i, "ps": ps})
                     tasks.append(
                         asyncio.ensure_future(
@@ -328,7 +327,7 @@ class Client:
                         all_results.append(extracted_data)
                         batch_art_objects.append(extracted_data)
                     total_retrieved += len(results)
-                    logging.info(f"total fetched so far: {total_retrieved}")
+                    logger.info(f"total fetched so far: {total_retrieved}")
 
                 save_objects_to_database(batch_art_objects)
 

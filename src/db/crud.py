@@ -1,9 +1,8 @@
-# import torch
-from sqlmodel import Session, col, select
 import torch
+from sqlalchemy import func
+from sqlmodel import Session, col, select
 
 from src.db.models import ArtObjects, Embeddings, engine
-from sqlalchemy import func
 
 
 def check_count_art_objects() -> int:

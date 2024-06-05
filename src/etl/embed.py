@@ -1,6 +1,5 @@
 import asyncio
-import logging
-
+from loguru import logger
 import httpx
 import torch
 from PIL import Image
@@ -70,7 +69,7 @@ def get_images_embeddings(
     return list(zip(ids, embeddings))
 
 
-async def main(count: int, batch_size: int):
+async def run_embed_stage(count: int, batch_size: int):
     """
     Main function to retrieve, embed, and store images in batches.
 
@@ -84,19 +83,18 @@ async def main(count: int, batch_size: int):
                 ids_and_images = await get_ids_and_images(client, batch_size, offset)
                 ids_and_embeddings = get_images_embeddings(ids_and_images)
                 insert_batch_image_embeddings(ids_and_embeddings)
-                logging.info(
+                logger.info(
                     f"Finished embedding of {len(ids_and_embeddings)} ArtObjects in batch starting at offset {offset}"
                 )
     except EmbeddingError as e:
-        logging.error(f"Embedding Error: {e}")
+        logger.error(f"Embedding Error: {e}")
         raise
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        logger.error(f"An unexpected error occurred: {e}")
         raise EmbeddingError(msg=str(e))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     count = 10
     batch_size = 5
-    asyncio.run(main(count=count, batch_size=batch_size))
+    asyncio.run(run_embed_stage(count=count, batch_size=batch_size))

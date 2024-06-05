@@ -1,6 +1,6 @@
 import asyncio
 import os
-import logging
+from loguru import logger
 from dotenv import load_dotenv
 
 from src.etl.errors import MissingApiKeyError, ExtractError
@@ -34,7 +34,7 @@ async def fetch_art_objects(
         raise ExtractError(msg=str(e))
 
 
-async def main():
+async def run_extract_stage():
     """
     Main function to retrieve and process art objects.
     """
@@ -44,25 +44,24 @@ async def main():
 
         # After MVP this can be increased or removed
         if current_count_art_objects >= 10_000:
-            logging.info(
+            logger.info(
                 "Initial 10,000 objects already in the database. Stopping ETL during MVP phase"
             )
             return
 
         art_objects = await fetch_art_objects(api_key)
-        logging.info(f"Extracted {len(art_objects)} art objects")
+        logger.info(f"Extracted {len(art_objects)} art objects")
 
     except MissingApiKeyError as e:
-        logging.error(f"API Key Error: {e}")
+        logger.error(f"API Key Error: {e}")
         raise
     except ExtractError as e:
-        logging.error(f"Data Extraction Error: {e}")
+        logger.error(f"Data Extraction Error: {e}")
         raise
     except Exception as e:
-        logging.error(f"An unexpected error occurred: {e}")
+        logger.error(f"An unexpected error occurred: {e}")
         raise ExtractError(str(e))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    asyncio.run(main())
+    asyncio.run(run_extract_stage())
