@@ -10,7 +10,7 @@ async def main():
     await run_extract()
     logging.info("Finished extracting ArtObjects")
     logging.info("Starting embeding of ArtObjects")
-    await run_embed()
+    await run_embed(count=10, batch_size=5)
     logging.info("Finished embeding and saving of ArtObjects")
 
 

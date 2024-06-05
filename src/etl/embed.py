@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+import httpx
 import torch
 from PIL import Image
 from transformers import AutoProcessor, CLIPModel
@@ -69,16 +70,24 @@ def get_images_embeddings(
     return list(zip(ids, embeddings))
 
 
-async def main():
+async def main(count: int, batch_size: int):
     """
-    Main function to retrieve, embed, and store images.
+    Main function to retrieve, embed, and store images in batches.
+
+    Args:
+        count (int): The total number of images to retrieve.
+        batch_size (int): The number of images to retrieve per batch.
     """
     try:
-        # Adjust the count and batch_size according to system capabilities
-        ids_and_images = await get_ids_and_images(count=10, batch_size=5)
-        ids_and_embeddings = get_images_embeddings(ids_and_images)
-        insert_batch_image_embeddings(ids_and_embeddings)
-        logging.info(f"Finished embedding of {len(ids_and_embeddings)} ArtObjects")
+        async with httpx.AsyncClient() as client:
+            for offset in range(0, count, batch_size):
+                print(offset, batch_size, count)
+                ids_and_images = await get_ids_and_images(client, batch_size, offset)
+                ids_and_embeddings = get_images_embeddings(ids_and_images)
+                insert_batch_image_embeddings(ids_and_embeddings)
+                logging.info(
+                    f"Finished embedding of {len(ids_and_embeddings)} ArtObjects in batch starting at offset {offset}"
+                )
     except EmbeddingError as e:
         logging.error(f"Embedding Error: {e}")
         raise
@@ -89,4 +98,6 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(main())
+    count = 10
+    batch_size = 5
+    asyncio.run(main(count=count, batch_size=batch_size))

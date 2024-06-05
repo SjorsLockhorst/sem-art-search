@@ -38,29 +38,26 @@ async def download_img(
 
 
 async def get_ids_and_images(
-    count: int, batch_size: int
+    client: httpx.AsyncClient, batch_size: int, offset: int
 ) -> List[Tuple[int, Image.Image]]:
     """
     Retrieve and download images for a batch of art objects.
 
     Args:
-        count (int): The total number of images to retrieve.
+        client (httpx.AsyncClient): The HTTP client to use for the requests.
         batch_size (int): The number of images to retrieve per batch.
+        offset (int): The starting index for the batch.
 
     Returns:
         List[Tuple[int, Image.Image]]: A list of tuples containing art object IDs and their corresponding images.
     """
-    step_size = count // batch_size
     images: List[Tuple[int, Image.Image]] = []
-
-    async with httpx.AsyncClient() as client:
-        for i in range(step_size):
-            art_objects = retrieve_batch_art_objects(batch_size, i * batch_size)
-            tasks = [
-                download_img(client, art_object.id, art_object.image_url)
-                for art_object in art_objects
-            ]
-            batch_images = await asyncio.gather(*tasks)
-            images.extend([img for img in batch_images if img is not None])
+    art_objects = retrieve_batch_art_objects(batch_size, offset)
+    tasks = [
+        download_img(client, art_object.id, art_object.image_url)
+        for art_object in art_objects
+    ]
+    batch_images = await asyncio.gather(*tasks)
+    images.extend([img for img in batch_images if img is not None])
 
     return images
