@@ -1,5 +1,6 @@
 # import torch
 from sqlmodel import Session, col, select
+import torch
 
 from src.db.models import ArtObjects, Embeddings, engine
 from sqlalchemy import func
@@ -38,7 +39,9 @@ def insert_batch_image_embeddings(
 
     with Session(engine) as session:
         embeddings = [
-            Embeddings(art_object_id=art_object_id, image=embedding.cpu().numpy())
+            Embeddings(
+                art_object_id=art_object_id, image=embedding.detach().cpu().numpy()
+            )
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
