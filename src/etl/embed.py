@@ -81,7 +81,6 @@ async def main(count: int, batch_size: int):
     try:
         async with httpx.AsyncClient() as client:
             for offset in range(0, count, batch_size):
-                print(offset, batch_size, count)
                 ids_and_images = await get_ids_and_images(client, batch_size, offset)
                 ids_and_embeddings = get_images_embeddings(ids_and_images)
                 insert_batch_image_embeddings(ids_and_embeddings)
