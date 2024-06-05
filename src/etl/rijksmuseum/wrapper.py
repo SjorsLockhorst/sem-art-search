@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from enum import StrEnum
 
 import httpx
@@ -22,14 +23,14 @@ class Client:
         r = await client.get(url, params=params)
 
         if r.status_code != 200:
-            print(f"Error fetching results: {r.status_code}")
+            logging.error(f"Error fetching results: {r.status_code}")
 
         data = r.json()
         results = data.get("artObjects", [])
 
         return results
 
-    # TODO: Implement this
+    # TODO: Implement this after MVP phase
     def _get_objects_with_known_artist(self):
         artists = [
             "George Hendrik Breitner",
@@ -141,13 +142,13 @@ class Client:
             limit = 0
             p = 1  # Page index
             while total_retrieved < limit:
-                print(
+                logging.info(
                     f"Fetching {ps} objects on page {p} for artist {artist} - total fetched so far: {total_retrieved}"
                 )
                 params = {"ps": ps, "p": p, "principalMaker": artist}
                 response = httpx.get(self.url, params=params)
                 if response.status_code != 200:
-                    print(
+                    logging.error(
                         f"Error fetching results for {artist}: {response.status_code}"
                     )
                     break
@@ -173,7 +174,7 @@ class Client:
 
         return all_results
 
-    # TODO: Implement this
+    # TODO: Implement this after MVP phase
     def _get_objects_with_unknown_artist(self):
         artist = "anonymous"
         object_types = [
@@ -280,9 +281,10 @@ class Client:
         ]
 
     async def get_initial_10_000_objects(self) -> list[ArtObjects]:
-        """Function used to retrieve the first 10,000 objects from the Rijksmuseum API.
+        """
+        Function used to retrieve the first 10_000 objects from the Rijksmuseum API.
         The ps query parameter is used to set number of results per page, with a max of 100. The p query parameter is for navigating to the next page.
-        Note that p * ps cannot exceed 10,000.
+        Note that p * ps cannot exceed 10_000.
 
         Returns
         -------
@@ -303,7 +305,7 @@ class Client:
                 for i in range(batch_size):
                     if total_retrieved + (i * ps) >= limit:
                         break
-                    print(f"Fetching {ps} objects on page {p + i}")
+                    logging.info(f"Fetching {ps} objects on page {p + i}")
                     params = httpx.QueryParams({"p": p + i, "ps": ps})
                     tasks.append(
                         asyncio.ensure_future(
@@ -326,7 +328,7 @@ class Client:
                         all_results.append(extracted_data)
                         batch_art_objects.append(extracted_data)
                     total_retrieved += len(results)
-                    print(f"total fetched so far: {total_retrieved}")
+                    logging.info(f"total fetched so far: {total_retrieved}")
 
                 save_objects_to_database(batch_art_objects)
 

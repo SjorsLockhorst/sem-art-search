@@ -1,5 +1,7 @@
 import asyncio
+import logging
 from io import BytesIO
+from typing import List, Optional, Tuple
 
 import httpx
 from PIL import Image
@@ -8,23 +10,49 @@ from src.db.crud import retrieve_batch_art_objects
 
 
 async def download_img(
-    client: httpx.AsyncClient, id, url
-) -> tuple[int, Image.Image] | None:
-    response = await client.get(url)
-    if response.status_code != 200:
-        print(f"Error fetching image for art object {id}, skipping image")
-        return None
+    client: httpx.AsyncClient, id: int, url: str
+) -> Optional[Tuple[int, Image.Image]]:
+    """
+    Download an image from the given URL using the provided HTTP client.
+
+    Args:
+        client (httpx.AsyncClient): The HTTP client to use for the request.
+        id (int): The ID of the art object.
+        url (str): The URL of the image to download.
+
+    Returns:
+        Optional[Tuple[int, Image.Image]]: A tuple containing the art object ID and the downloaded image, or None if the download or processing fails.
+    """
     try:
+        response = await client.get(url)
+        response.raise_for_status()
         image = Image.open(BytesIO(response.content))
         return (id, image)
+    except httpx.HTTPStatusError:
+        logging.error(f"Error fetching image for art object {id}, skipping image")
     except Exception as e:
-        print(f"Error processing image for art object {id}: {e}")
-        return None
+        logging.error(
+            f"Error processing image for art object {id}: {e}, skipping image"
+        )
+    return None
 
 
-async def get_images(count: int, batch_size: int) -> list[tuple[int, Image.Image]]:
+async def get_ids_and_images(
+    count: int, batch_size: int
+) -> List[Tuple[int, Image.Image]]:
+    """
+    Retrieve and download images for a batch of art objects.
+
+    Args:
+        count (int): The total number of images to retrieve.
+        batch_size (int): The number of images to retrieve per batch.
+
+    Returns:
+        List[Tuple[int, Image.Image]]: A list of tuples containing art object IDs and their corresponding images.
+    """
     step_size = count // batch_size
-    images: list[tuple[int, Image.Image]] = []
+    images: List[Tuple[int, Image.Image]] = []
+
     async with httpx.AsyncClient() as client:
         for i in range(step_size):
             art_objects = retrieve_batch_art_objects(batch_size, i * batch_size)
@@ -34,4 +62,5 @@ async def get_images(count: int, batch_size: int) -> list[tuple[int, Image.Image
             ]
             batch_images = await asyncio.gather(*tasks)
             images.extend([img for img in batch_images if img is not None])
+
     return images

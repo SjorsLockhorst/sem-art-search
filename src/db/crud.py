@@ -1,7 +1,14 @@
-import torch
+# import torch
 from sqlmodel import Session, col, select
 
 from src.db.models import ArtObjects, Embeddings, engine
+from sqlalchemy import func
+
+
+def check_count_art_objects() -> int:
+    with Session(engine) as session:
+        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
+        return count if count else 0
 
 
 def save_objects_to_database(art_objects: list[ArtObjects]):
