@@ -48,7 +48,7 @@ def insert_batch_image_embeddings(
         session.commit()
 
 
-def retrieve_batch_art_objects(batch_size: int, offset: int):
+def retrieve_batch_art_objects(batch_size: int):
     """
     Retrieve a number of ArtObjects from the database, based on the batch_size
 
@@ -66,7 +66,6 @@ def retrieve_batch_art_objects(batch_size: int, offset: int):
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
             .where(col(ArtObjects.id).not_in(subquery))
-            .offset(offset)
             .limit(batch_size)
             .order_by(col(ArtObjects.id).asc())
         )

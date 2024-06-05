@@ -52,7 +52,7 @@ async def get_ids_and_images(
         List[Tuple[int, Image.Image]]: A list of tuples containing art object IDs and their corresponding images.
     """
     images: List[Tuple[int, Image.Image]] = []
-    art_objects = retrieve_batch_art_objects(batch_size, offset)
+    art_objects = retrieve_batch_art_objects(batch_size)
     tasks = [
         download_img(client, art_object.id, art_object.image_url)
         for art_object in art_objects
