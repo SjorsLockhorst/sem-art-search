@@ -61,3 +61,8 @@ async def main():
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
         raise ExtractError(str(e))
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
