@@ -1,12 +1,16 @@
 import torch
 from PIL import Image
-from transformers import AutoProcessor, CLIPModel
+from transformers import (
+    AutoProcessor,
+    CLIPVisionModelWithProjection,
+    CLIPTextModelWithProjection,
+)
 
 from src.etl.errors import EmbeddingError
 from src.etl.embed.config import HF_BASE_URL
 
-class ArtEmbedder:
 
+class ArtEmbedder:
     @staticmethod
     def _get_device() -> str:
         """
@@ -15,7 +19,7 @@ class ArtEmbedder:
         return "cuda" if torch.cuda.is_available() else "cpu"
 
     def norm(self, embeddings: torch.Tensor) -> torch.Tensor:
-            return embeddings / embeddings.norm(p=2, dim=-1, keepdim=True)
+        return embeddings / embeddings.norm(p=2, dim=-1, keepdim=True)
 
 
 class ImageEmbedder(ArtEmbedder):
@@ -25,9 +29,8 @@ class ImageEmbedder(ArtEmbedder):
         """
         self.device = self._get_device()
         self.processor = AutoProcessor.from_pretrained(hf_base_url)
-        self.model = CLIPModel.from_pretrained(hf_base_url)
+        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url)
         self.model.to(self.device)
-
 
     def _process(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
         """
@@ -39,7 +42,7 @@ class ImageEmbedder(ArtEmbedder):
         """
         Generate embeddings for the processed images.
         """
-        return self.model.get_image_features(**inputs)
+        return self.model(**inputs).image_embeds
 
     def __call__(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
         """
@@ -54,6 +57,7 @@ class ImageEmbedder(ArtEmbedder):
         except Exception as e:
             raise EmbeddingError(msg=str(e))
 
+
 class TextEmbedder(ArtEmbedder):
     def __init__(self, hf_base_url: str = HF_BASE_URL):
         """
@@ -61,9 +65,8 @@ class TextEmbedder(ArtEmbedder):
         """
         self.device = self._get_device()
         self.processor = AutoProcessor.from_pretrained(hf_base_url)
-        self.model = CLIPModel.from_pretrained(hf_base_url)
+        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url)
         self.model.to(self.device)
-
 
     def _process(self, texts: str | list[str]) -> torch.Tensor:
         """
@@ -75,7 +78,7 @@ class TextEmbedder(ArtEmbedder):
         """
         Generate embeddings for the processed texts.
         """
-        return self.model.get_text_features(**inputs)
+        return self.model(**inputs).text_embeds
 
     def __call__(self, texts: str | list[str]) -> torch.Tensor:
         """
@@ -84,8 +87,8 @@ class TextEmbedder(ArtEmbedder):
         try:
             inputs = self._process(texts)
             inputs.to(self.device)
-            image_embeds = self._embed(inputs)
-            return self.norm(image_embeds)
+            text_embeds = self._embed(inputs)
+            return self.norm(text_embeds)
 
         except Exception as e:
             raise EmbeddingError(msg=str(e))
