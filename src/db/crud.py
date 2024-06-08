@@ -73,3 +73,20 @@ def retrieve_batch_art_objects(batch_size: int):
         art_objects = result.all()
 
         return art_objects
+
+
+def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtObjects]:
+    with Session(engine) as session:
+        top_ids = session.exec(
+            select(Embeddings.art_object_id)
+            .order_by(
+                Embeddings.image.cosine_distance(embedding.cpu().detach().numpy())
+            )
+            .limit(top_k)
+        ).all()
+
+        art_objects = session.exec(
+            select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))
+        ).all()
+
+    return list(art_objects)

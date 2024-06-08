@@ -1,6 +1,6 @@
 import asyncio
 from src.etl.extract import run_extract_stage
-from src.etl.embed import run_embed_stage
+from src.etl.embed.embed import run_embed_stage
 from loguru import logger
 
 
@@ -10,7 +10,7 @@ async def main():
     await run_extract_stage()
     logger.info("Finished extracting ArtObjects")
     logger.info("Starting embedding of ArtObjects")
-    await run_embed_stage(count=25, batch_size=5)
+    await run_embed_stage(image_count=100, batch_size=5)
     logger.info("Finished embedding and saving of ArtObjects")
 
 
