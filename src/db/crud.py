@@ -1,5 +1,3 @@
-from typing import Sequence
-
 import torch
 from sqlalchemy import func
 from sqlmodel import Session, col, select
@@ -9,8 +7,7 @@ from src.db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(
-            select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -78,15 +75,12 @@ def retrieve_batch_art_objects(batch_size: int):
         return art_objects
 
 
-def retrieve_best_image_match(
-    embedding: torch.Tensor, top_k: int
-) -> Sequence[ArtObjects]:
+def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtObjects]:
     with Session(engine) as session:
         top_ids = session.exec(
             select(Embeddings.art_object_id)
             .order_by(
-                Embeddings.image.cosine_distance(
-                    embedding.cpu().detach().numpy())
+                Embeddings.image.cosine_distance(embedding.cpu().detach().numpy())
             )
             .limit(top_k)
         ).all()
@@ -95,4 +89,4 @@ def retrieve_best_image_match(
             select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))
         ).all()
 
-    return art_objects
+    return list(art_objects)
