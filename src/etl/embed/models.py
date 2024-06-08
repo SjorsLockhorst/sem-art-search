@@ -1,3 +1,5 @@
+from time import time
+
 import torch
 from PIL import Image
 from transformers import (
@@ -8,6 +10,7 @@ from transformers import (
 
 from src.etl.errors import EmbeddingError
 from src.etl.embed.config import HF_BASE_URL
+from loguru import logger
 
 
 class ArtEmbedder:
@@ -49,10 +52,17 @@ class ImageEmbedder(ArtEmbedder):
         Call the ImageEmbedder with a list of images to get their embeddings.
         """
         try:
+            batch_size = 1 if isinstance(images, Image.Image) else len(images)
+            logger.info(f"Embedding {batch_size} images")
+            start_time = time()
+
             inputs = self._process(images)
             inputs.to(self.device)
             image_embeds = self._embed(inputs)
-            return self.norm(image_embeds)
+            proj_embeddings = self.norm(image_embeds)
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
+            return proj_embeddings
 
         except Exception as e:
             raise EmbeddingError(msg=str(e))
@@ -85,10 +95,17 @@ class TextEmbedder(ArtEmbedder):
         Call the ImageEmbedder with a list of images to get their embeddings.
         """
         try:
+            batch_size = 1 if isinstance(texts, str) else len(texts)
+            logger.info(f"Embedding {batch_size} texts")
+            start_time = time()
+
             inputs = self._process(texts)
             inputs.to(self.device)
             text_embeds = self._embed(inputs)
-            return self.norm(text_embeds)
+            proj_embeddings = self.norm(text_embeds)
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
+            return proj_embeddings
 
         except Exception as e:
             raise EmbeddingError(msg=str(e))
