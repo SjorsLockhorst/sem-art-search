@@ -6,7 +6,7 @@ from src.db.models import ArtObjects
 
 router = APIRouter()
 
-text_embedder = TextEmbedder()
+text_embedder = TextEmbedder(device="cpu")
 
 @router.get("/query", tags=["art"])
 def get_image_and_neighbors(art_query: str, top_k: int) -> list[ArtObjects]:
