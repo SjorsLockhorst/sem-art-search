@@ -1,9 +1,11 @@
 from time import time
+from typing import Optional
 
 import torch
 from PIL import Image
 from transformers import (
-    AutoProcessor,
+    CLIPImageProcessor,
+    CLIPTokenizerFast,
     CLIPVisionModelWithProjection,
     CLIPTextModelWithProjection,
 )
@@ -14,8 +16,14 @@ from loguru import logger
 
 
 class ArtEmbedder:
+    def __init__(self, device: Optional[str] = None):
+        if not device:
+            self.device = self._get_cuda_if_available()
+        else:
+            self.device = device
+
     @staticmethod
-    def _get_device() -> str:
+    def _get_cuda_if_available() -> str:
         """
         Return the device to be used (CUDA if available, otherwise CPU).
         """
@@ -26,12 +34,13 @@ class ArtEmbedder:
 
 
 class ImageEmbedder(ArtEmbedder):
-    def __init__(self, hf_base_url: str = HF_BASE_URL):
+    def __init__(self, device: Optional[str]= None, hf_base_url: str = HF_BASE_URL):
         """
         Initialize the ImageEmbedder with the given Hugging Face base URL.
         """
-        self.device = self._get_device()
-        self.processor = AutoProcessor.from_pretrained(hf_base_url)
+        super().__init__(device)
+
+        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url)
         self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url)
         self.model.to(self.device)
 
@@ -39,7 +48,7 @@ class ImageEmbedder(ArtEmbedder):
         """
         Process the input images to prepare them for embedding.
         """
-        return self.processor(images=images, return_tensors="pt")
+        return self.processor(images, return_tensors="pt")
 
     def _embed(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -69,20 +78,20 @@ class ImageEmbedder(ArtEmbedder):
 
 
 class TextEmbedder(ArtEmbedder):
-    def __init__(self, hf_base_url: str = HF_BASE_URL):
+    def __init__(self, device: Optional[str] = None, hf_base_url: str = HF_BASE_URL):
         """
         Initialize the TextEmbedder with the given Hugging Face base URL.
         """
-        self.device = self._get_device()
-        self.processor = AutoProcessor.from_pretrained(hf_base_url)
+        super().__init__()
+        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url)
         self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url)
         self.model.to(self.device)
 
-    def _process(self, texts: str | list[str]) -> torch.Tensor:
+    def _tokenize(self, texts: str | list[str]) -> torch.Tensor:
         """
         Process the input texts to prepare them for embedding.
         """
-        return self.processor(text=texts, return_tensors="pt", padding=True)
+        return self.tokenizer(texts, return_tensors="pt", padding=True)
 
     def _embed(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -99,7 +108,7 @@ class TextEmbedder(ArtEmbedder):
             logger.info(f"Embedding {batch_size} texts")
             start_time = time()
 
-            inputs = self._process(texts)
+            inputs = self._tokenize(texts)
             inputs.to(self.device)
             text_embeds = self._embed(inputs)
             proj_embeddings = self.norm(text_embeds)
