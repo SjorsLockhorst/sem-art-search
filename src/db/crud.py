@@ -47,16 +47,14 @@ def insert_batch_image_embeddings(
         session.commit()
 
 
-def retrieve_batch_art_objects(batch_size: int):
+def retrieve_unembedded_image_art(count: int):
     """
     Retrieve a number of ArtObjects from the database, based on the batch_size
 
     Parameters
     ----------
-    batch_size : int
+    count : int
         The number of ArtObjects to be retrieved in one call
-    offset : int
-        The number of rows to be skipped before fetching the objects
 
     """
     with Session(engine) as session:
@@ -65,7 +63,7 @@ def retrieve_batch_art_objects(batch_size: int):
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
             .where(col(ArtObjects.id).not_in(subquery))
-            .limit(batch_size)
+            .limit(count)
             .order_by(col(ArtObjects.id).asc())
         )
 

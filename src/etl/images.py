@@ -6,8 +6,6 @@ from typing import List, Optional, Tuple
 import httpx
 from PIL import Image
 
-from src.db.crud import retrieve_batch_art_objects
-
 
 async def download_img(
     client: httpx.AsyncClient, id: int, url: str
@@ -35,27 +33,28 @@ async def download_img(
     return None
 
 
-async def get_ids_and_images(
-    client: httpx.AsyncClient, batch_size: int, offset: int
+async def fetch_images_from_pairs(
+        client: httpx.AsyncClient, id_url_pairs: list[tuple[int, str]]
 ) -> List[Tuple[int, Image.Image]]:
     """
-    Retrieve and download images for a batch of art objects.
+    Retrieve and download images.
 
     Args:
         client (httpx.AsyncClient): The HTTP client to use for the requests.
-        batch_size (int): The number of images to retrieve per batch.
-        offset (int): The starting index for the batch.
+        id_url_pairs: list[tuple[int, str]]
+            List of identifiers and image URLs.
 
     Returns:
-        List[Tuple[int, Image.Image]]: A list of tuples containing art object IDs and their corresponding images.
+        List[Tuple[int, Image.Image]]: A list of tuples IDs and their corresponding images.
     """
     images: List[Tuple[int, Image.Image]] = []
-    art_objects = retrieve_batch_art_objects(batch_size)
+
     tasks = [
-        download_img(client, art_object.id, art_object.image_url)
-        for art_object in art_objects
+        download_img(client, id, image_url)
+        for id, image_url in id_url_pairs
     ]
     batch_images = await asyncio.gather(*tasks)
     images.extend([img for img in batch_images if img is not None])
 
     return images
+
