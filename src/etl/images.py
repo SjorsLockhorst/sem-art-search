@@ -34,7 +34,7 @@ async def download_img(
 
 
 async def fetch_images_from_pairs(
-        client: httpx.AsyncClient, id_url_pairs: list[tuple[int, str]]
+    client: httpx.AsyncClient, id_url_pairs: list[tuple[int, str]]
 ) -> List[Tuple[int, Image.Image]]:
     """
     Retrieve and download images.
@@ -45,16 +45,12 @@ async def fetch_images_from_pairs(
             List of identifiers and image URLs.
 
     Returns:
-        List[Tuple[int, Image.Image]]: A list of tuples IDs and their corresponding images.
+        List[Tuple[int, Image.Image]]: A list of tuples containing IDs and their corresponding images.
     """
     images: List[Tuple[int, Image.Image]] = []
 
-    tasks = [
-        download_img(client, id, image_url)
-        for id, image_url in id_url_pairs
-    ]
+    tasks = [download_img(client, id, image_url) for id, image_url in id_url_pairs]
     batch_images = await asyncio.gather(*tasks)
     images.extend([img for img in batch_images if img is not None])
 
     return images
-
