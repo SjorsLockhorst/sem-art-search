@@ -2,9 +2,11 @@ import argparse
 
 from PIL import Image
 import requests
+import numpy as np
 
 from src.etl.embed.embed import embed_text
-from src.db.crud import retrieve_best_image_match
+from src.db.crud import retrieve_best_image_match_w_embedding
+from src.etl.dim_reduc import get_embedding_coordinates, load_pca
 
 HF_BASE_URL = "openai/clip-vit-base-patch16"
 
@@ -27,9 +29,14 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    embedding = embed_text(args.query)
-    art_objects = retrieve_best_image_match(embedding, args.top_k)
+    pca = load_pca()
+    text_embedding = embed_text(args.query)
+    art_objects_embeddings = retrieve_best_image_match_w_embedding(
+        text_embedding, args.top_k
+    )
+    all_embeddings = np.array([embedding for _, embedding in art_objects_embeddings])
 
-    print(art_objects[0])
-    image = Image.open(requests.get(art_objects[0].image_url, stream=True).raw)
-    image.show()
+    text_coordinate = get_embedding_coordinates(pca, text_embedding.reshape(1, -1))
+    closest_image_coordinates = get_embedding_coordinates(pca, all_embeddings)
+    print(f"Text coordinates: {text_coordinate[0]}")
+    print(f"Image coordinates: \n{closest_image_coordinates}")

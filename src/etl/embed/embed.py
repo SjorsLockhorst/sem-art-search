@@ -5,6 +5,7 @@ import httpx
 import torch
 from loguru import logger
 from PIL import Image
+import numpy as np
 
 from src.db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
 from src.etl.embed.models import ImageEmbedder, TextEmbedder
@@ -28,9 +29,9 @@ def get_images_embeddings(
     return list(zip(ids, embeddings))
 
 
-def embed_text(query: str):
+def embed_text(query: str) -> np.ndarray:
     embedder = TextEmbedder()
-    return embedder(query)[0]
+    return embedder(query)[0].cpu().detach().numpy()
 
 
 async def run_embed_stage(image_count: int, batch_size: int):

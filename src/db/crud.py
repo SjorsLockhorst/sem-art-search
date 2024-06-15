@@ -1,5 +1,7 @@
 import torch
 from sqlalchemy import func
+import numpy as np
+from typing import Optional
 from sqlmodel import Session, col, select
 
 from src.db.models import ArtObjects, Embeddings, engine
@@ -88,3 +90,28 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
         ).all()
 
     return list(art_objects)
+
+
+def retrieve_best_image_match_w_embedding(
+    embedding: np.ndarray, top_k: int
+) -> list[tuple[ArtObjects, np.ndarray]]:
+    with Session(engine) as session:
+        joined_result = session.exec(
+            select(ArtObjects, Embeddings.image)
+            .order_by(
+                Embeddings.image.cosine_distance(embedding)
+            )
+            .limit(top_k)
+            .join(ArtObjects)
+        ).all()
+
+    return list(joined_result)
+
+def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
+    with Session(engine) as session:
+        query = select(Embeddings)
+        if limit:
+            query = query.limit(limit)
+        embeddings = session.exec(query).all()
+
+    return list(embeddings)
