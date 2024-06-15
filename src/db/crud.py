@@ -64,7 +64,7 @@ def retrieve_unembedded_image_art(count: int):
 
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
-            .where(col(ArtObjects.id).not_in(subquery))
+            # .where(col(ArtObjects.id).not_in(subquery))
             .limit(count)
             .order_by(col(ArtObjects.id).asc())
         )
@@ -98,14 +98,13 @@ def retrieve_best_image_match_w_embedding(
     with Session(engine) as session:
         joined_result = session.exec(
             select(ArtObjects, Embeddings.image)
-            .order_by(
-                Embeddings.image.cosine_distance(embedding)
-            )
+            .order_by(Embeddings.image.cosine_distance(embedding))
             .limit(top_k)
             .join(ArtObjects)
         ).all()
 
     return list(joined_result)
+
 
 def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
     with Session(engine) as session:
