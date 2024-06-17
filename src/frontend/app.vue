@@ -33,7 +33,7 @@
     </div>
     <div class="w-full h-full mt-4 overflow-hidden">
       <canvas ref="canvas" class="block w-full h-full border-2 border-black" @mousedown="startDrag" @mousemove="drag"
-        @mouseup="endDrag" @wheel="zoom"></canvas>
+        @mouseup="endDrag" @wheel="zoom" @click="handleClick"></canvas>
     </div>
   </div>
 </template>
@@ -191,5 +191,27 @@ const redraw = () => {
       );
     }
   });
+};
+
+const handleClick = (e: MouseEvent) => {
+  const clickX = e.offsetX;
+  const clickY = e.offsetY;
+
+  for (let i = 0; i < imgPositions.value.length; i++) {
+    const pos = imgPositions.value[i];
+    const image = images.value[i];
+    if (!pos || !image) continue;
+
+    const x = pos.x - (image.width * scale.value) / 2;
+    const y = pos.y - (image.height * scale.value) / 2;
+    const width = image.width * scale.value;
+    const height = image.height * scale.value;
+
+    if (clickX >= x && clickX <= x + width && clickY >= y && clickY <= y + height) {
+      console.log(`Image ${i} clicked!`);
+      // TODO: Add logic here
+      break;
+    }
+  }
 };
 </script>
