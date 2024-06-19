@@ -1,6 +1,5 @@
 <template>
   <div class="p-4 h-screen">
-    <button @click="clearPixiCache">destroy</button>
     <div>
       <h1 class="text-4xl font-bold">
         <span class="italic text-blue-800">Art</span>ificial Intelligence
@@ -39,16 +38,16 @@
 </template>
 
 <script setup lang="ts">
-import { Application, Graphics, Sprite, Assets, Text, Cache } from 'pixi.js';
-import { Viewport } from 'pixi-viewport';
+import { Application, Graphics, Sprite, Assets, Text } from "pixi.js";
+import { Viewport } from "pixi-viewport";
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
-const { width, height } = useElementSize(pixiContainer)
+const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
 const images = ref<Sprite[]>([]);
-const points = ref<{ x: number, y: number }[]>([
-  // Example points; replace these with your actual data
+const points = ref<{ x: number; y: number }[]>([
+  // Example points; TODO: replace these with actual data
   { x: 100, y: 100 },
   { x: 200, y: 200 },
   { x: 300, y: 300 },
@@ -58,7 +57,7 @@ const points = ref<{ x: number, y: number }[]>([
   { x: 700, y: 700 },
   { x: 800, y: 800 },
   { x: 900, y: 900 },
-  { x: 1000, y: 1000 },
+  { x: 1000, y: 1000 }
 ]);
 const baseOffset = 5000; // Base distance between images, otherwise they overlap
 const scale = ref(1);
@@ -85,7 +84,7 @@ const loadImages = async () => {
   for (const [index, url] of urls.entries()) {
     textures[`image-${index}`] = await Assets.load({
       src: url,
-      loadParser: 'loadTextures'
+      loadParser: "loadTextures"
     });
   }
 
@@ -102,7 +101,9 @@ const fetchAndLoadQueryResults = async () => {
     loading.value = true;
 
     const textures = await loadImages();
-    images.value = Object.values(textures).map((texture: any) => new Sprite(texture));
+    images.value = Object.values(textures).map(
+      (texture: any) => new Sprite(texture)
+    );
 
     // Constants for centering and offset
     const centerX = width.value / 2;
@@ -137,13 +138,14 @@ const fetchAndLoadQueryResults = async () => {
       sprite.x = pos.x;
       sprite.y = pos.y;
 
-      sprite.on('pointerdown', () => {
+      sprite.on("pointerdown", () => {
         console.log(`Image ${index} clicked!`);
         // TODO: Add click handling logic
       });
-      viewport.value.addChild(sprite);
-    });
 
+      viewport.value.addChild(sprite);
+
+    });
   } catch (error) {
     console.error("Error loading images:", error);
   } finally {
@@ -160,10 +162,10 @@ const initializePixi = async () => {
     canvas: document.querySelector("canvas"),
     width: width.value,
     height: height.value,
-    background: '#fff',
+    background: "#fff",
     antialias: true,
     autoDensity: true,
-    resolution: 2,
+    resolution: 2
   });
 
   pixiApp.value = app;
@@ -172,7 +174,11 @@ const initializePixi = async () => {
   const vp = new Viewport({
     passiveWheel: false,
     events: pixiApp.value.renderer.events
-  }).drag().pinch().wheel().decelerate();
+  })
+    .drag()
+    .pinch()
+    .wheel()
+    .decelerate();
 
   viewport.value = vp;
 
@@ -184,12 +190,11 @@ const initializePixi = async () => {
 };
 
 const loadScatterPlotPoints = (viewport) => {
-
   const text = viewport.addChild(
     new Text({
-      text: 'hello world 😁',
+      text: "hello world 😁",
       style: {
-        fontFamily: 'short-stack'
+        fontFamily: "short-stack"
       }
     })
   );
@@ -205,7 +210,7 @@ const loadScatterPlotPoints = (viewport) => {
   });
 
   graphics.interactive = true;
-  graphics.on('pointerdown', (event) => {
+  graphics.on("pointerdown", (event) => {
     const clickX = event.global.x;
     const clickY = event.global.y;
 
@@ -228,5 +233,4 @@ const loadScatterPlotPoints = (viewport) => {
 onMounted(() => {
   initializePixi();
 });
-
 </script>
