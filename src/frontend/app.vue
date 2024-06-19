@@ -95,8 +95,12 @@ const loadImages = async () => {
 const fetchAndLoadQueryResults = async () => {
   try {
     // TODO: Only remove image childeren, the scatterplot should remains
-    viewport.value?.removeChildren();
+    images.value.forEach((sprite) => {
+      viewport.value?.removeChild(sprite);
+    });
+
     loading.value = true;
+
     const textures = await loadImages();
     images.value = Object.values(textures).map((texture: any) => new Sprite(texture));
 
@@ -104,7 +108,7 @@ const fetchAndLoadQueryResults = async () => {
     const centerX = width.value / 2;
     const centerY = height.value / 2;
     const offset = baseOffset * scale.value;
-    console.log(images.value);
+
     // Add images and points to the viewport
     images.value.forEach((sprite, index) => {
       sprite.interactive = true;
@@ -135,7 +139,7 @@ const fetchAndLoadQueryResults = async () => {
 
       sprite.on('pointerdown', () => {
         console.log(`Image ${index} clicked!`);
-        // Add click handling logic
+        // TODO: Add click handling logic
       });
       viewport.value.addChild(sprite);
     });
@@ -183,12 +187,13 @@ const loadScatterPlotPoints = (viewport) => {
 
   const text = viewport.addChild(
     new Text({
-      text: 'hello world',
+      text: 'hello world 😁',
       style: {
         fontFamily: 'short-stack'
       }
     })
   );
+
   text.anchor.set(0.5);
   text.resolution = 8;
   text.x = viewport.screenWidth / 2;
@@ -212,18 +217,12 @@ const loadScatterPlotPoints = (viewport) => {
         clickY <= point.y + 2
       ) {
         console.log(`Point clicked at (${point.x}, ${point.y})`);
-        // Add your click handling logic here
+        // TODO: Add your click handling logic here
       }
     });
   });
 
   viewport.addChild(graphics);
-};
-
-
-const clearPixiCache = () => {
-  pixiApp.value?.destroy()
-  console.log('PixiJS cache cleared');
 };
 
 onMounted(() => {
