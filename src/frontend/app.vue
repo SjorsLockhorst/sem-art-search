@@ -1,5 +1,6 @@
 <template>
   <div class="p-4 h-screen">
+    <button @click="clearPixiCache">destroy</button>
     <div>
       <h1 class="text-4xl font-bold">
         <span class="italic text-blue-800">Art</span>ificial Intelligence
@@ -31,24 +32,38 @@
         </form>
       </div>
     </div>
-    <div class="w-full h-full mt-4 overflow-hidden">
-      <canvas ref="canvas" class="block w-full h-full border-2 border-black" @mousedown="startDrag" @mousemove="drag"
-        @mouseup="endDrag" @wheel="zoom" @click="handleClick"></canvas>
+    <div ref="pixiContainer" class="w-full h-screen mt-4 overflow-hidden border-2 border-black">
+      <canvas class=""></canvas>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const canvas = ref<HTMLCanvasElement | null>(null);
-const isDragging = ref(false);
-const imgPositions = ref([]);
-const scale = ref(0.10);
-const images = ref<HTMLImageElement[]>([]);
-const baseOffset = 2500; // Base distance between images, otherwise they overlap
-const ctx = ref<CanvasRenderingContext2D | null>(null);
-const dragStart = ref({ x: 0, y: 0 });
+import { Application, Graphics, Sprite, Assets, Text, Cache } from 'pixi.js';
+import { Viewport } from 'pixi-viewport';
+
+const pixiContainer = ref<HTMLDivElement | null>(null);
+const { width, height } = useElementSize(pixiContainer)
 const artQuery = ref("");
 const loading = ref(false);
+const images = ref<Sprite[]>([]);
+const points = ref<{ x: number, y: number }[]>([
+  // Example points; replace these with your actual data
+  { x: 100, y: 100 },
+  { x: 200, y: 200 },
+  { x: 300, y: 300 },
+  { x: 400, y: 400 },
+  { x: 500, y: 500 },
+  { x: 600, y: 600 },
+  { x: 700, y: 700 },
+  { x: 800, y: 800 },
+  { x: 900, y: 900 },
+  { x: 1000, y: 1000 },
+]);
+const baseOffset = 5000; // Base distance between images, otherwise they overlap
+const scale = ref(1);
+const pixiApp = ref<Application>();
+const viewport = ref<Viewport>();
 
 const fetchImageUrls = async () => {
   try {
@@ -65,26 +80,66 @@ const fetchImageUrls = async () => {
 
 const loadImages = async () => {
   const urls = await fetchImageUrls();
-  return Promise.all(
-    urls.map(
-      (url: string) =>
-        new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.src = url;
-          img.onload = () => resolve(img);
-          img.onerror = () =>
-            reject(new Error(`Failed to load image at ${url}`));
-        })
-    )
-  );
+  const textures = {};
+
+  for (const [index, url] of urls.entries()) {
+    textures[`image-${index}`] = await Assets.load({
+      src: url,
+      loadParser: 'loadTextures'
+    });
+  }
+
+  return textures;
 };
 
 const fetchAndLoadQueryResults = async () => {
   try {
+    // TODO: Only remove image childeren, the scatterplot should remains
+    viewport.value?.removeChildren();
     loading.value = true;
-    images.value = await loadImages();
-    positionImages();
-    redraw();
+    const textures = await loadImages();
+    images.value = Object.values(textures).map((texture: any) => new Sprite(texture));
+
+    // Constants for centering and offset
+    const centerX = width.value / 2;
+    const centerY = height.value / 2;
+    const offset = baseOffset * scale.value;
+    console.log(images.value);
+    // Add images and points to the viewport
+    images.value.forEach((sprite, index) => {
+      sprite.interactive = true;
+      sprite.anchor.set(0.5);
+
+      let pos = { x: centerX, y: centerY };
+
+      // Calculate positions for the surrounding images
+      if (index > 0) {
+        switch (index) {
+          case 1:
+            pos = { x: centerX + offset, y: centerY }; // Right
+            break;
+          case 2:
+            pos = { x: centerX - offset, y: centerY }; // Left
+            break;
+          case 3:
+            pos = { x: centerX, y: centerY + offset }; // Bottom
+            break;
+          case 4:
+            pos = { x: centerX, y: centerY - offset }; // Top
+            break;
+        }
+      }
+
+      sprite.x = pos.x;
+      sprite.y = pos.y;
+
+      sprite.on('pointerdown', () => {
+        console.log(`Image ${index} clicked!`);
+        // Add click handling logic
+      });
+      viewport.value.addChild(sprite);
+    });
+
   } catch (error) {
     console.error("Error loading images:", error);
   } finally {
@@ -92,126 +147,87 @@ const fetchAndLoadQueryResults = async () => {
   }
 };
 
-const initializeCanvas = async () => {
-  const canvasEl = canvas.value;
-  if (!canvasEl) return;
+const initializePixi = async () => {
+  if (!pixiContainer.value) return;
 
-  ctx.value = canvasEl.getContext("2d");
-  resizeCanvas();
+  const app = new Application();
+  // Create a new application
+  await app.init({
+    canvas: document.querySelector("canvas"),
+    width: width.value,
+    height: height.value,
+    background: '#fff',
+    antialias: true,
+    autoDensity: true,
+    resolution: 2,
+  });
 
-  // try {
-  //   images.value = await loadImages();
-  //   positionImages();
-  //   redraw();
-  // } catch (error) {
-  //   console.error('Error loading images:', error);
-  // }
+  pixiApp.value = app;
+
+  // Create viewport
+  const vp = new Viewport({
+    passiveWheel: false,
+    events: pixiApp.value.renderer.events
+  }).drag().pinch().wheel().decelerate();
+
+  viewport.value = vp;
+
+  // Add the viewport to the stage
+  pixiApp.value.stage.addChild(viewport.value);
+
+  // Load scatter plot points
+  loadScatterPlotPoints(viewport.value);
 };
 
-const positionImages = () => {
-  if (!canvas.value) return;
-  const { width, height } = canvas.value;
+const loadScatterPlotPoints = (viewport) => {
 
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const offset = baseOffset * scale.value;
+  const text = viewport.addChild(
+    new Text({
+      text: 'hello world',
+      style: {
+        fontFamily: 'short-stack'
+      }
+    })
+  );
+  text.anchor.set(0.5);
+  text.resolution = 8;
+  text.x = viewport.screenWidth / 2;
+  text.y = viewport.screenHeight / 2;
+  const graphics = new Graphics();
 
-  imgPositions.value = [
-    { x: centerX, y: centerY }, // Center image
-    { x: centerX - offset, y: centerY - offset }, // Top-left
-    { x: centerX + offset, y: centerY - offset }, // Top-right
-    { x: centerX - offset, y: centerY + offset }, // Bottom-left
-    { x: centerX + offset, y: centerY + offset } // Bottom-right
-  ];
+  points.value.forEach((point) => {
+    graphics.circle(point.x, point.y, 15).fill("blue", 1);
+  });
+
+  graphics.interactive = true;
+  graphics.on('pointerdown', (event) => {
+    const clickX = event.global.x;
+    const clickY = event.global.y;
+
+    points.value.forEach((point) => {
+      if (
+        clickX >= point.x - 2 &&
+        clickX <= point.x + 2 &&
+        clickY >= point.y - 2 &&
+        clickY <= point.y + 2
+      ) {
+        console.log(`Point clicked at (${point.x}, ${point.y})`);
+        // Add your click handling logic here
+      }
+    });
+  });
+
+  viewport.addChild(graphics);
 };
 
-const resizeCanvas = () => {
-  const canvasEl = canvas.value;
-  if (!canvasEl || !ctx.value) return;
-  canvasEl.width = canvasEl.offsetWidth;
-  canvasEl.height = canvasEl.offsetHeight;
-  positionImages();
-  redraw();
+
+const clearPixiCache = () => {
+  pixiApp.value?.destroy()
+  console.log('PixiJS cache cleared');
 };
 
 onMounted(() => {
-  initializeCanvas();
-  window.addEventListener("resize", resizeCanvas);
+  initializePixi();
 });
 
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", resizeCanvas);
-});
-
-const startDrag = (e: MouseEvent) => {
-  isDragging.value = true;
-  dragStart.value = { x: e.clientX, y: e.clientY };
-};
-
-const drag = (e: MouseEvent) => {
-  if (!isDragging.value || !ctx.value || images.value.length === 0) return;
-
-  const dx = e.clientX - dragStart.value.x;
-  const dy = e.clientY - dragStart.value.y;
-  dragStart.value = { x: e.clientX, y: e.clientY };
-
-  imgPositions.value.forEach((pos) => {
-    pos.x += dx;
-    pos.y += dy;
-  });
-
-  redraw();
-};
-
-const endDrag = () => {
-  isDragging.value = false;
-};
-
-const zoom = (e: WheelEvent) => {
-  e.preventDefault();
-  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-  scale.value *= zoomFactor;
-  positionImages();
-
-  redraw();
-};
-
-const redraw = () => {
-  if (!ctx.value || !canvas.value || images.value.length === 0) return;
-  ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height);
-  images.value.forEach((image, index) => {
-    const pos = imgPositions.value[index];
-    if (pos && image) {
-      ctx.value.drawImage(
-        image,
-        pos.x - (image.width * scale.value) / 2,
-        pos.y - (image.height * scale.value) / 2,
-        image.width * scale.value,
-        image.height * scale.value
-      );
-    }
-  });
-};
-
-const handleClick = (e: MouseEvent) => {
-  const clickX = e.offsetX;
-  const clickY = e.offsetY;
-
-  for (let i = 0; i < imgPositions.value.length; i++) {
-    const pos = imgPositions.value[i];
-    const image = images.value[i];
-    if (!pos || !image) continue;
-
-    const x = pos.x - (image.width * scale.value) / 2;
-    const y = pos.y - (image.height * scale.value) / 2;
-    const width = image.width * scale.value;
-    const height = image.height * scale.value;
-
-    if (clickX >= x && clickX <= x + width && clickY >= y && clickY <= y + height) {
-      console.log(`Image ${i} clicked!`);
-      // TODO: Add logic here
-      break;
-    }
-  }
-};
 </script>
