@@ -32,37 +32,28 @@
       </div>
     </div>
     <div ref="pixiContainer" class="w-full h-screen mt-4 overflow-hidden border-2 border-black">
-      <canvas class=""></canvas>
+      <canvas></canvas>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Application, Graphics, Sprite, Assets, Text } from "pixi.js";
+import { Application, Graphics, Sprite, Assets, Text, RenderTexture, Container, Ticker } from "pixi.js";
 import { Viewport } from "pixi-viewport";
+import { Simple } from "./utils/pixi-cull/index"
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
 const images = ref<Sprite[]>([]);
-const points = ref<{ x: number; y: number }[]>([
-  // Example points; TODO: replace these with actual data
-  { x: 100, y: 100 },
-  { x: 200, y: 200 },
-  { x: 300, y: 300 },
-  { x: 400, y: 400 },
-  { x: 500, y: 500 },
-  { x: 600, y: 600 },
-  { x: 700, y: 700 },
-  { x: 800, y: 800 },
-  { x: 900, y: 900 },
-  { x: 1000, y: 1000 }
-]);
 const baseOffset = 5000; // Base distance between images, otherwise they overlap
 const scale = ref(1);
-const pixiApp = ref<Application>();
-const viewport = ref<Viewport>();
+
+// Change these to normal variables
+let pixiApp: Application;
+let viewport: Viewport;
+
 
 const fetchImageUrls = async () => {
   try {
@@ -91,11 +82,74 @@ const loadImages = async () => {
   return textures;
 };
 
+const generateRandomPoints = (numPoints: number, maxX: number, maxY: number) => {
+  const pointsArray = [];
+  for (let i = 0; i < numPoints; i++) {
+    pointsArray.push({
+      x: Math.round(Math.random() * maxX),
+      y: Math.round(Math.random() * maxY),
+    });
+  }
+  return pointsArray;
+};
+
+const loadScatterPlotPoints = (viewport: Viewport) => {
+  const text = viewport.addChild(
+    new Text({
+      text: "hello world 😁",
+      style: {
+        fontFamily: "short-stack"
+      }
+    })
+  );
+
+  text.anchor.set(0.5);
+  text.resolution = 8;
+  text.x = viewport.screenWidth / 2;
+  text.y = viewport.screenHeight / 2;
+
+  const points = generateRandomPoints(500000, 50000, 50000);
+
+  // Create a Graphics object to draw the circle
+  const templateShape = new Graphics()
+    .rect(0, 0, 5, 5)
+    .fill("blue")
+
+  const { width: shapeWidth, height: shapeHeight } = templateShape;
+
+  // Draw the circle to the RenderTexture
+  const renderTexture = RenderTexture.create({
+    width: shapeWidth,
+    height: shapeHeight,
+    resolution: window.devicePixelRatio
+  });
+
+  // With the existing renderer, render texture, make sure to apply a transform Matrix
+  pixiApp.renderer.render(templateShape, {
+    renderTexture,
+    // transform: new Matrix(1, 0, 0, 1, shapeWidth / 2, shapeHeight / 2)
+  });
+
+  // Discard the original Graphics
+  templateShape.destroy(true);
+
+  const container = new Container();
+
+  points.forEach(point => {
+    const shape = new Sprite(renderTexture);
+    shape.anchor.set(0.5);
+    shape.x = point.x;
+    shape.y = point.y;
+    container.addChild(shape);
+  });
+
+  viewport.addChild(container);
+};
+
 const fetchAndLoadQueryResults = async () => {
   try {
-    // TODO: Only remove image childeren, the scatterplot should remains
     images.value.forEach((sprite) => {
-      viewport.value?.removeChild(sprite);
+      viewport?.removeChild(sprite);
     });
 
     loading.value = true;
@@ -143,7 +197,7 @@ const fetchAndLoadQueryResults = async () => {
         // TODO: Add click handling logic
       });
 
-      viewport.value.addChild(sprite);
+      viewport.addChild(sprite);
 
     });
   } catch (error) {
@@ -156,78 +210,53 @@ const fetchAndLoadQueryResults = async () => {
 const initializePixi = async () => {
   if (!pixiContainer.value) return;
 
-  const app = new Application();
-  // Create a new application
-  await app.init({
+  pixiApp = new Application();
+  await pixiApp.init({
     canvas: document.querySelector("canvas"),
     width: width.value,
     height: height.value,
     background: "#fff",
     antialias: true,
     autoDensity: true,
-    resolution: 2
+    resolution: 2,
   });
 
-  pixiApp.value = app;
+  pixiContainer.value.appendChild(pixiApp.canvas);
 
   // Create viewport
-  const vp = new Viewport({
-    passiveWheel: false,
-    events: pixiApp.value.renderer.events
+  viewport = new Viewport({
+    screenWidth: width.value,
+    screenHeight: height.value,
+    worldWidth: 10000,
+    worldHeight: 10000,
+    events: pixiApp.renderer.events
   })
     .drag()
     .pinch()
     .wheel()
     .decelerate();
 
-  viewport.value = vp;
-
   // Add the viewport to the stage
-  pixiApp.value.stage.addChild(viewport.value);
+  pixiApp.stage.addChild(viewport);
 
   // Load scatter plot points
-  loadScatterPlotPoints(viewport.value);
-};
+  loadScatterPlotPoints(viewport);
 
-const loadScatterPlotPoints = (viewport) => {
-  const text = viewport.addChild(
-    new Text({
-      text: "hello world 😁",
-      style: {
-        fontFamily: "short-stack"
-      }
-    })
-  );
+  const cull = new Simple({ dirtyTest: true });
+  cull.addList(viewport.children);
+  cull.cull(viewport.getVisibleBounds());
 
-  text.anchor.set(0.5);
-  text.resolution = 8;
-  text.x = viewport.screenWidth / 2;
-  text.y = viewport.screenHeight / 2;
-  const graphics = new Graphics();
+  const ticker = Ticker.shared;
 
-  points.value.forEach((point) => {
-    graphics.circle(point.x, point.y, 15).fill("blue", 1);
+  // cull whenever the viewport moves
+  ticker.add(() => {
+    if (viewport.dirty) {
+      cull.cull(viewport.getVisibleBounds(), true);
+      viewport.dirty = false;
+      console.log(cull.stats());
+    }
   });
-
-  graphics.interactive = true;
-  graphics.on("pointerdown", (event) => {
-    const clickX = event.global.x;
-    const clickY = event.global.y;
-
-    points.value.forEach((point) => {
-      if (
-        clickX >= point.x - 2 &&
-        clickX <= point.x + 2 &&
-        clickY >= point.y - 2 &&
-        clickY <= point.y + 2
-      ) {
-        console.log(`Point clicked at (${point.x}, ${point.y})`);
-        // TODO: Add your click handling logic here
-      }
-    });
-  });
-
-  viewport.addChild(graphics);
+  ticker.start();
 };
 
 onMounted(() => {
