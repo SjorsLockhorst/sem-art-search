@@ -4,12 +4,12 @@
             <span class="italic text-blue-800">Art</span>ificial Intelligence
         </h1>
         <div class="mt-6 w-full md:w-1/2 max-w-md mx-auto my-12">
-            <form @submit.prevent="loadImages" class="relative shadow-md roun">
+            <form @submit.prevent="loadImages" class="relative shadow-md rounded-md">
                 <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only ">Search</label>
                 <div class="relative">
                     <input v-model="artQuery" type="search" id="default-search"
-                        class="block w-full p-4 text-gray-900 bg-neutral-100" placeholder="A woman in a black dress"
-                        required />
+                        class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
+                        placeholder="A woman in a black dress" required />
                     <button :disabled="loading" type="submit"
                         class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800  font-medium rounded-lg text-sm px-4 py-2 ">
                         <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
