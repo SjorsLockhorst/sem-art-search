@@ -8,7 +8,7 @@ client = TestClient(app)
 def test_health():
     response = client.get("/health")
     assert response.status_code == 200
-    response.json() == "ok"
+    assert response.json() == "ok"
 
 
 def test_art_query():
