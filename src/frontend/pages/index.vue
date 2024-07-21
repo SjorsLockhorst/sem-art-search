@@ -3,20 +3,15 @@
         <h1 class="text-4xl font-bold">
             <span class="italic text-blue-800">Art</span>ificial Intelligence
         </h1>
-        <div class="mt-6 w-full md:w-1/2">
-            <form @submit.prevent="loadImages" class="px-8 pt-6 pb-8 mb-4">
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="query">
-                        Search Prompt
-                    </label>
-                    <input v-model="artQuery"
-                        class="appearance-none bg-neutral-100 rounded-full w-full p-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="query" type="text" placeholder="A woman standing up and wearing a black dress" />
-                </div>
-                <div class="flex items-center justify-between">
-                    <button :disabled="loading"
-                        class="bg-blue-800 rounded-full inline-flex hover:bg-blue-700 text-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline"
-                        type="submit">
+        <div class="mt-6 w-full md:w-1/2 max-w-md mx-auto">
+            <form @submit.prevent="loadImages" class="relative px-8 pt-6 pb-8 mb-4">
+                <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only ">Search</label>
+                <div class="relative">
+                    <input v-model="artQuery" type="search" id="default-search"
+                        class="block w-full p-4   text-gray-900  rounded-lg bg-neutral-100 "
+                        placeholder="A woman in a black dress" required />
+                    <button :disabled="loading" type="submit"
+                        class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800  font-medium rounded-lg text-sm px-4 py-2 ">
                         <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -25,18 +20,17 @@
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                             </path>
                         </svg>
-                        Search
+                        <span v-if="!loading">Search</span>
                     </button>
                 </div>
             </form>
         </div>
-        <div class="flex justify-center items-center min-h-screen" v-if="mainImage">
+        <div class="flex justify-center  min-h-screen" v-if="mainImage">
             <div class="container mx-auto px-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="flex justify-center items-center">
+                    <div class="flex justify-center ">
                         <div v-if="loading && !mainImageLoaded"
-                            class="animate-pulse bg-gray-300 rounded-2xl w-full aspect-square">
-                        </div>
+                            class="animate-pulse bg-gray-300 rounded-2xl w-full aspect-square"></div>
                         <Transition name="fade" mode="out-in">
                             <div v-show="mainImageLoaded">
                                 <NuxtImg v-show="mainImageLoaded" :src="mainImage?.image_url" :key="mainImageKey"
