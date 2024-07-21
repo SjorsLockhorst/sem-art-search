@@ -3,7 +3,7 @@
         <h1 class="text-4xl font-bold">
             <span class="italic text-blue-800">Art</span>ificial Intelligence
         </h1>
-        <div class="mt-6">
+        <div class="mt-6 w-full md:w-1/2">
             <form @submit.prevent="loadImages" class="px-8 pt-6 pb-8 mb-4">
                 <div class="mb-4">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="query">
@@ -39,15 +39,19 @@
                         </div>
                         <Transition name="fade" mode="out-in">
                             <div v-show="mainImageLoaded">
-                                <NuxtImg v-show="mainImageLoaded" :src="mainImage?.image_url" :key="generateRandomKey"
+                                <NuxtImg v-show="mainImageLoaded" :src="mainImage?.image_url" :key="mainImageKey"
                                     class="rounded-2xl max-w-full h-auto object-cover" @load="onMainImageLoad" />
-                                <span v-if="mainImageLoaded">{{ mainImage.long_title }}</span>
+                                <div v-if="mainImageLoaded">
+                                    <p class="text-lg ">
+                                        {{ mainImage.long_title }} -
+                                        <span class="italic"> {{ mainImage.artist }}</span>
+                                    </p>
+                                </div>
                             </div>
                         </Transition>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div v-for="(relatedImage, index) in relatedImages"
-                            :key="relatedImage.image_url + index + generateRandomKey"
+                        <div v-for="(relatedImage, index) in relatedImages" :key="relatedImageKeys[index]"
                             class="flex justify-center items-center">
                             <div v-if="loading && !relatedImagesLoaded[index]"
                                 class="animate-pulse bg-gray-300 rounded-2xl w-full aspect-square"></div>
@@ -55,9 +59,13 @@
                                 <div v-show="relatedImagesLoaded[index]">
                                     <NuxtImg v-show="relatedImagesLoaded[index]" :src="relatedImage.image_url"
                                         class="rounded-2xl max-w-full h-auto object-cover"
-                                        @load="onRelatedImageLoad(index)"
-                                        :key="relatedImage.image_url + index + generateRandomKey" />
-                                    <span v-if="relatedImagesLoaded[index]">{{ relatedImage.long_title }}</span>
+                                        @load="onRelatedImageLoad(index)" :key="relatedImageKeys[index]" />
+                                    <div v-if="relatedImagesLoaded[index]">
+                                        <p class="text-lg ">
+                                            {{ relatedImage.long_title }} -
+                                            <span class="italic"> {{ relatedImage.artist }}</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </Transition>
                         </div>
@@ -69,12 +77,17 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 const artQuery = ref("");
+const previousQuery = ref("");
 const loading = ref(false);
 const mainImage = ref<Artwork | null>(null);
 const relatedImages = ref<Artwork[]>([]);
 const mainImageLoaded = ref(false);
 const relatedImagesLoaded = ref<boolean[]>([]);
+const mainImageKey = ref("");
+const relatedImageKeys = ref<string[]>([]);
 
 interface Artwork {
     original_id: string;
@@ -84,7 +97,7 @@ interface Artwork {
     long_title: string;
 }
 
-const generateRandomKey = () => {
+const generateUniqueKey = () => {
     return Math.random().toString(36).substring(2, 22);
 };
 
@@ -102,6 +115,9 @@ const fetchArtworks = async (): Promise<Artwork[]> => {
 };
 
 const loadImages = async () => {
+    if (previousQuery.value === artQuery.value) {
+        return;
+    }
     loading.value = true;
     relatedImagesLoaded.value = [];
     try {
@@ -112,10 +128,13 @@ const loadImages = async () => {
             relatedImages.value = rest;
             relatedImagesLoaded.value = new Array(rest.length).fill(false);
             mainImageLoaded.value = false;
+            mainImageKey.value = generateUniqueKey();
+            relatedImageKeys.value = rest.map(() => generateUniqueKey());
         } else {
             mainImage.value = null;
             relatedImages.value = [];
         }
+        previousQuery.value = artQuery.value
     } catch (error) {
         console.error("Error loading artworks:", error);
         mainImage.value = null;
@@ -143,7 +162,7 @@ const checkAllImagesLoaded = () => {
 <style>
 .fade-enter-active,
 .fade-leave-active {
-    transition: opacity 0.8s ease;
+    transition: opacity 0.5s ease;
 }
 
 .fade-enter-from,
