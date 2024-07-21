@@ -94,13 +94,23 @@ export class Simple {
 		if (!skipUpdate) {
 			this.updateObjects();
 		}
+
+		const boundX = bounds.x;
+		const boundY = bounds.y;
+		const boundWidth = bounds.width;
+		const boundHeight = bounds.height;
+		const boundRight = boundX + boundWidth;
+		const boundBottom = boundY + boundHeight;
+
 		for (const object of this.lists) {
 			const box = object.AABB; // Use cached AABB
+			const boxRight = box.x + box.width;
+			const boxBottom = box.y + box.height;
 			object.visible =
-				box.x + box.width > bounds.x &&
-				box.x < bounds.x + bounds.width &&
-				box.y + box.height > bounds.y &&
-				box.y < bounds.y + bounds.height;
+				boxRight > boundX &&
+				box.x < boundRight &&
+				boxBottom > boundY &&
+				box.y < boundBottom;
 		}
 	}
 
