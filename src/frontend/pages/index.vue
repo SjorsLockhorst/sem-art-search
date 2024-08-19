@@ -89,6 +89,8 @@ interface Artwork {
     artist: string;
     id: number;
     long_title: string;
+    x: number;
+    y: number;
 }
 
 const generateUniqueKey = () => {

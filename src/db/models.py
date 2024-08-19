@@ -13,6 +13,23 @@ class ArtObjects(SQLModel, table=True):
     artist: str
 
 
+class ArtObjectsWithCoord(ArtObjects, table=False):
+    x: float
+    y: float
+
+    @classmethod
+    def from_art_object(cls, art_object: ArtObjects, x: float, y: float):
+        return cls(
+            id=art_object.id,
+            original_id=art_object.original_id,
+            image_url=art_object.image_url,
+            long_title=art_object.long_title,
+            artist=art_object.artist,
+            x=x,
+            y=y,
+        )
+
+
 class Embeddings(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     image: Any = Field(sa_column=Column(Vector(512)))

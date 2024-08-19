@@ -60,11 +60,9 @@ def retrieve_unembedded_image_art(count: int):
 
     """
     with Session(engine) as session:
-        subquery = select(Embeddings.art_object_id)
 
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
-            # .where(col(ArtObjects.id).not_in(subquery))
             .limit(count)
             .order_by(col(ArtObjects.id).asc())
         )

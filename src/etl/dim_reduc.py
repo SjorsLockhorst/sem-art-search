@@ -36,11 +36,11 @@ def fit_pca_on_all():
 
 
 def load_pca() -> PCA:
+    logger.info("Loading PCA model for transformation.")
     return load(PCA_PATH)
 
 
-def get_embedding_coordinates(pca: PCA, embeddings: np.ndarray) -> tuple[float, float]:
-    logger.info("Loading PCA model for transformation.")
+def get_embedding_coordinates(pca: PCA, embeddings: np.ndarray) -> np.ndarray:
     coordinates = pca.transform(embeddings)
     logger.info(
         f"Transformed from original shape {embeddings.shape} -> {coordinates.shape}"
