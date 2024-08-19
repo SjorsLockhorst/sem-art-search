@@ -1,13 +1,17 @@
 import asyncio
-from loguru import logger
+from itertools import batched
+
 import httpx
 import torch
+from loguru import logger
 from PIL import Image
+import numpy as np
+from sqlalchemy import exc
 
-from src.db.crud import insert_batch_image_embeddings
-from src.etl.errors import EmbeddingError
-from src.etl.images import get_ids_and_images
+from src.db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
 from src.etl.embed.models import ImageEmbedder, TextEmbedder
+from src.etl.errors import EmbeddingError
+from src.etl.images import fetch_images_from_pairs
 
 
 def get_images_embeddings(
@@ -20,15 +24,14 @@ def get_images_embeddings(
     embeddings = image_embedder(list(imgs))
 
     if len(ids) != len(embeddings):
-        raise EmbeddingError(
-            msg="Amount of IDs does not match amount of embeddings")
+        raise EmbeddingError(msg="Amount of IDs does not match amount of embeddings")
 
     return list(zip(ids, embeddings))
 
 
-def embed_text(query: str):
+def embed_text(query: str) -> np.ndarray:
     embedder = TextEmbedder()
-    return embedder(query)[0]
+    return embedder(query)[0].cpu().detach().numpy()
 
 
 async def run_embed_stage(image_count: int, batch_size: int):
@@ -36,32 +39,73 @@ async def run_embed_stage(image_count: int, batch_size: int):
     Main function to retrieve, embed, and store images in batches.
 
     Args:
-        count (int): The total number of images to retrieve.
+        image_count (int): The total number of images to retrieve.
         batch_size (int): The number of images to retrieve per batch.
     """
     try:
         image_embedder = ImageEmbedder()
+        task_queue: asyncio.Queue = asyncio.Queue()
+        id_url_pairs = retrieve_unembedded_image_art(image_count)
+
+        if not id_url_pairs:
+            logger.info("No unembedded images, exiting.")
+            return
+
         async with httpx.AsyncClient() as client:
-            for offset in range(0, image_count, batch_size):
-                ids_and_images = await get_ids_and_images(client, batch_size, offset)
-                ids_and_embeddings = get_images_embeddings(
-                    ids_and_images, image_embedder
-                )
-                insert_batch_image_embeddings(ids_and_embeddings)
-                logger.info(
-                    f"Finished embedding of {len(ids_and_embeddings)} ArtObjects in batch starting at offset {offset}"
-                )
+
+            async def producer():
+                n = image_count // batch_size
+                for batch_id, id_url_batch in enumerate(
+                    batched(id_url_pairs, batch_size)
+                ):
+                    logger.info(
+                        f"Starting to fetch {batch_size} new images. "
+                        f"Progress: ({batch_id}/{n})"
+                    )
+                    ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
+                    if ids_and_images:
+                        await task_queue.put(ids_and_images)
+                    else:
+                        logger.debug(
+                            "No images retrived in batch, skipped entire batch"
+                        )
+
+                    logger.info(
+                        f"Done fetching {batch_size} images. Batch id: {batch_id}"
+                    )
+
+                # Sentinel value to indicate completion
+                await task_queue.put(None)
+
+            async def consumer():
+                embed_batch_id = 0
+                while True:
+                    ids_and_images = await task_queue.get()
+                    if ids_and_images is None:
+                        break
+
+                    logger.info(f"Starting to embed batch id: {embed_batch_id}")
+                    ids_and_embeddings = get_images_embeddings(
+                        ids_and_images, image_embedder
+                    )
+                    insert_batch_image_embeddings(ids_and_embeddings)
+                    logger.info(f"Done embedding batch id: {embed_batch_id}")
+                    embed_batch_id += 1
+
+            await asyncio.gather(producer(), consumer())
+
     except EmbeddingError as e:
         logger.error(f"Embedding Error: {e}")
         raise
+    except exc.SQLAlchemyError as e:
+        logger.error(f"Database Error: {e}")
+        raise
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
-        raise EmbeddingError(msg=str(e))
-
-
+        raise
 
 
 if __name__ == "__main__":
-    count = 10
-    batch_size = 5
+    count = 10000
+    batch_size = 8
     asyncio.run(run_embed_stage(image_count=count, batch_size=batch_size))

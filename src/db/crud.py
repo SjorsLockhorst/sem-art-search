@@ -1,5 +1,7 @@
 import torch
 from sqlalchemy import func
+import numpy as np
+from typing import Optional
 from sqlmodel import Session, col, select
 
 from src.db.models import ArtObjects, Embeddings, engine
@@ -47,16 +49,14 @@ def insert_batch_image_embeddings(
         session.commit()
 
 
-def retrieve_batch_art_objects(batch_size: int):
+def retrieve_unembedded_image_art(count: int):
     """
     Retrieve a number of ArtObjects from the database, based on the batch_size
 
     Parameters
     ----------
-    batch_size : int
+    count : int
         The number of ArtObjects to be retrieved in one call
-    offset : int
-        The number of rows to be skipped before fetching the objects
 
     """
     with Session(engine) as session:
@@ -64,8 +64,8 @@ def retrieve_batch_art_objects(batch_size: int):
 
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
-            .where(col(ArtObjects.id).not_in(subquery))
-            .limit(batch_size)
+            # .where(col(ArtObjects.id).not_in(subquery))
+            .limit(count)
             .order_by(col(ArtObjects.id).asc())
         )
 
@@ -90,3 +90,27 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
         ).all()
 
     return list(art_objects)
+
+
+def retrieve_best_image_match_w_embedding(
+    embedding: np.ndarray, top_k: int
+) -> list[tuple[ArtObjects, np.ndarray]]:
+    with Session(engine) as session:
+        joined_result = session.exec(
+            select(ArtObjects, Embeddings.image)
+            .order_by(Embeddings.image.cosine_distance(embedding))
+            .limit(top_k)
+            .join(ArtObjects)
+        ).all()
+
+    return list(joined_result)
+
+
+def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
+    with Session(engine) as session:
+        query = select(Embeddings)
+        if limit:
+            query = query.limit(limit)
+        embeddings = session.exec(query).all()
+
+    return list(embeddings)

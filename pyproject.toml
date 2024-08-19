@@ -19,7 +19,13 @@ torch = "^2.3.0"
 transformers = "^4.41.2"
 loguru = "^0.7.2"
 pytest = "^8.2.2"
+scikit-learn = "^1.5.0"
+joblib = "^1.4.2"
+matplotlib = "^3.9.0"
 
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
 
 [build-system]
 requires = ["poetry-core"]
