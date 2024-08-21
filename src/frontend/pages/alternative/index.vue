@@ -40,20 +40,15 @@
 </template>
 
 <script setup lang="ts">
-import { Application, Graphics, Sprite, Assets, Text, RenderTexture, Container, Ticker } from "pixi.js";
-import { Viewport } from "pixi-viewport";
-import { Simple } from "../../utils/pixi-cull/index"
+import { Application, Sprite, Assets } from "pixi.js";
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const images = ref<Sprite[]>([]);
-const baseOffset = 5000; // Base distance between images, otherwise they overlap
-const scale = ref(1);
 
 let pixiApp: Application;
-let viewport: Viewport;
+
 
 interface Artwork {
     original_id: string;
@@ -67,7 +62,7 @@ interface Artwork {
 
 const fetchArtworks = async (): Promise<Artwork[]> => {
     try {
-        const topK = 10;
+        const topK = 5;
         const response: Artwork[] = await $fetch<Artwork[]>(
             `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK}`
         );
@@ -78,70 +73,25 @@ const fetchArtworks = async (): Promise<Artwork[]> => {
     }
 };
 
-const loadImages = async () => {
-    const artworks = await fetchArtworks();
-    const urls = artworks.map((item: { image_url: string }) => item.image_url);
-    const textures = {};
-
-    for (const [index, url] of urls.entries()) {
-        textures[`image-${index}`] = await Assets.load({
-            src: url,
-            loadParser: "loadTextures"
-        });
-    }
-
-    return textures;
-};
-
-const generateRandomPoints = (numPoints: number, maxX: number, maxY: number) => {
-    const pointsArray = [];
-    for (let i = 0; i < numPoints; i++) {
-        pointsArray.push({
-            x: Math.round(Math.random() * maxX),
-            y: Math.round(Math.random() * maxY),
-        });
-    }
-    return pointsArray;
-};
-
 const fetchAndLoadQueryResults = async () => {
     try {
         loading.value = true;
 
         const artworks = await fetchArtworks();
 
-        const urls = artworks.map((item: { image_url: string }) => item.image_url);
-        const textures = {};
+        artworks.forEach(async (artwork) => {
+            const texture = await Assets.load({src: artwork.image_url, loadParser: "loadTextures"});
+            const sprite = Sprite.from(texture);
+            sprite.x = artwork.x * width.value;
+            sprite.y = artwork.y * height.value;
+            sprite.width = sprite.height = 100;
+            pixiApp.stage.addChild(sprite);
 
-        for (const [index, url] of urls.entries()) {
-            textures[`image-${index}`] = await Assets.load({
-                src: url,
-                loadParser: "loadTextures"
-            });
-        }
+        })
+            // sprite.on("pointerdown", () => {
+            //     console.log(`Image ${index} clicked!`);
+            // });
 
-        images.value = Object.values(textures).map(
-            (texture: any) => new Sprite(texture)
-        );
-
-        // Add images and points to the viewport
-        images.value.forEach((sprite, index) => {
-            sprite.interactive = true;
-            sprite.anchor.set(0.5);
-
-            const artwork = artworks[index]
-
-            const scalefactor = 10000;
-            sprite.x = artwork.x * scalefactor + sprite.width;
-            sprite.y = artwork.y * scalefactor + sprite.height;
-
-            sprite.on("pointerdown", () => {
-                console.log(`Image ${index} clicked!`);
-            });
-
-            viewport.addChild(sprite);
-
-        });
     } catch (error) {
         console.error("Error loading images:", error);
     } finally {
@@ -162,39 +112,10 @@ const initializePixi = async () => {
         autoDensity: true,
         resolution: 2,
     });
+    globalThis.__PIXI_APP__ = pixiApp;
 
     pixiContainer.value.appendChild(pixiApp.canvas);
 
-    // Create viewport
-    viewport = new Viewport({
-        screenWidth: width.value,
-        screenHeight: height.value,
-        worldWidth: 10000,
-        worldHeight: 10000,
-        events: pixiApp.renderer.events
-    })
-        .drag()
-        .pinch()
-        .wheel()
-        .decelerate();
-
-    // Add the viewport to the stage
-    pixiApp.stage.addChild(viewport);
-
-    const cull = new Simple({ dirtyTest: true });
-    cull.addList(viewport.children);
-    cull.cull(viewport.getVisibleBounds());
-
-    const ticker = Ticker.shared;
-
-    // cull whenever the viewport moves
-    ticker.add(() => {
-        if (viewport.dirty) {
-            cull.cull(viewport.getVisibleBounds(), true);
-            viewport.dirty = false;
-        }
-    });
-    ticker.start();
 };
 
 onMounted(() => {
