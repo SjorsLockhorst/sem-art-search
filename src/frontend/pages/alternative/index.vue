@@ -14,6 +14,9 @@
                         <input v-model="artQuery"
                             class="appearance-none border-black border-2 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             id="query" type="text" placeholder="A woman standing up and wearing a black dress" />
+                        <input v-model="topK"
+                            class="appearance-none border-black border-2 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            id="topk" type="number" />
                     </div>
                     <div class="flex items-center justify-between">
                         <button :disabled="loading"
@@ -40,19 +43,23 @@
 </template>
 
 <script setup lang="ts">
-import { Application, Sprite, Assets, Point } from "pixi.js";
+import { Application, Sprite, Assets, Point, Ticker, Container } from "pixi.js";
 import { Viewport } from "pixi-viewport";
+import { Simple } from "~/utils/pixi-cull";
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
+const topK = ref(5);
 
 let app: Application;
 let viewport: Viewport;
+let cull: Simple;
 
-const WORLD_WIDTH = 7000;
-const WORLD_HEIGHT = 7000;
+const WORLD_WIDTH = 10000;
+const WORLD_HEIGHT = 10000;
+const imgWidth = 500;
 
 
 interface Artwork {
@@ -67,9 +74,8 @@ interface Artwork {
 
 const fetchArtworks = async (): Promise<Artwork[]> => {
     try {
-        const topK = 5;
         const response: Artwork[] = await $fetch<Artwork[]>(
-            `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK}`
+            `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
         );
         return response;
     } catch (error) {
@@ -78,9 +84,7 @@ const fetchArtworks = async (): Promise<Artwork[]> => {
     }
 }
 
-type Point = { x: number, y: number };
-
-function getAverage(points: Point[]): { averageX: number, averageY: number } {
+function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
     const total = points.reduce((acc, point) => {
         acc.x += point.x;
         acc.y += point.y;
@@ -104,16 +108,20 @@ const fetchAndLoadQueryResults = async () => {
         const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
 
 
+        const container = new Container();
+
         artworks.forEach(async (artwork) => {
-            const texture = await Assets.load({src: artwork.image_url, loadParser: "loadTextures"});
+            const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
             const sprite = Sprite.from(texture);
             sprite.x = artwork.x * WORLD_WIDTH;
             sprite.y = artwork.y * WORLD_HEIGHT;
-            sprite.scale.x = sprite.scale.y = 0.1;
-            viewport.addChild(sprite);
+            cull.add(sprite);
+            container.addChild(sprite);
         })
-        viewport.animate({position: middlePoint, scale: 0.5});
+
+        viewport.addChild(container);
         window.scrollTo(0, document.body.scrollHeight);
+        viewport.animate({position: middlePoint, scale: 0.5});
 
     } catch (error) {
         console.error("Error loading images:", error);
@@ -135,6 +143,9 @@ const initializePixi = async () => {
         autoDensity: true,
         resolution: 2,
     });
+
+    pixiContainer.value.appendChild(app.canvas);
+
     viewport = new Viewport({
         passiveWheel: false,
         events: app.renderer.events,
@@ -144,11 +155,22 @@ const initializePixi = async () => {
       // activate plugins
     viewport.drag().pinch().wheel().decelerate()
 
-    globalThis.__PIXI_APP__ = app;
-
     app.stage.addChild(viewport);
-    // pixiContainer.value.appendChild(app.canvas);
 
+    cull = new Simple({ dirtyTest: true });
+    cull.addList(viewport.children);
+    cull.cull(viewport.getVisibleBounds());
+
+    const ticker = Ticker.shared;
+
+    // cull whenever the viewport moves
+    ticker.add(() => {
+        if (viewport.dirty) {
+            cull.cull(viewport.getVisibleBounds(), true);
+            viewport.dirty = false;
+        }
+    });
+    ticker.start();
 };
 
 onMounted(() => {
