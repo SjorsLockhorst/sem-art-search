@@ -3,3 +3,35 @@
 ## Data collection
 
 The image and image description data is retrieved using the [Rijksmuseum API](https://data.rijksmuseum.nl/object-metadata/api/#collection-api).
+
+## TODOs
+
+## ML MVP
+- [ ] Attempt different dimention reduction algos
+- [ ] Tweak PCA further
+### UX MVP
+
+- [ ] Find examples for the design of the frontend
+    - More clearly explain how to use the app
+
+- [ ] Make images clickable:
+    - Popup that shows more info about the object, maybe link to Rijks
+    - Allow selecting that image as image for new query
+
+- [ ] Add backend route to allow finding the closest images to an existing Artobject
+
+- [ ] Have backend return (x, y) of the user inputted query
+
+- [ ] Have frontend display the place of the user query.
+
+### ETL MVP
+- [ ] Implement ability to retrieve all images based on artist, for unkown artist based on type
+    - Keep in mind the rate limit of the API
+
+- [ ] Make sure that it really works
+
+### Deployment MVP
+- [ ] Restructure everything
+- [ ] Dockerize the things
+- [ ] Choose a cloud provider, give them your credit card
+- [ ] Dabble in SST
