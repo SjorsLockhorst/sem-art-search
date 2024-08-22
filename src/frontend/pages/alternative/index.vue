@@ -40,14 +40,19 @@
 </template>
 
 <script setup lang="ts">
-import { Application, Sprite, Assets } from "pixi.js";
+import { Application, Sprite, Assets, Point } from "pixi.js";
+import { Viewport } from "pixi-viewport";
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
 
-let pixiApp: Application;
+let app: Application;
+let viewport: Viewport;
+
+const WORLD_WIDTH = 7000;
+const WORLD_HEIGHT = 7000;
 
 
 interface Artwork {
@@ -71,6 +76,23 @@ const fetchArtworks = async (): Promise<Artwork[]> => {
         console.error("Error fetching artworks:", error);
         return [];
     }
+}
+
+type Point = { x: number, y: number };
+
+function getAverage(points: Point[]): { averageX: number, averageY: number } {
+    const total = points.reduce((acc, point) => {
+        acc.x += point.x;
+        acc.y += point.y;
+        return acc;
+    }, { x: 0, y: 0 });
+
+    const count = points.length;
+
+    return {
+        averageX: total.x / count,
+        averageY: total.y / count
+    };
 };
 
 const fetchAndLoadQueryResults = async () => {
@@ -78,19 +100,20 @@ const fetchAndLoadQueryResults = async () => {
         loading.value = true;
 
         const artworks = await fetchArtworks();
+        const {averageX, averageY} = getAverage(artworks);
+        const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+
 
         artworks.forEach(async (artwork) => {
             const texture = await Assets.load({src: artwork.image_url, loadParser: "loadTextures"});
             const sprite = Sprite.from(texture);
-            sprite.x = artwork.x * width.value;
-            sprite.y = artwork.y * height.value;
-            sprite.width = sprite.height = 100;
-            pixiApp.stage.addChild(sprite);
-
+            sprite.x = artwork.x * WORLD_WIDTH;
+            sprite.y = artwork.y * WORLD_HEIGHT;
+            sprite.scale.x = sprite.scale.y = 0.1;
+            viewport.addChild(sprite);
         })
-            // sprite.on("pointerdown", () => {
-            //     console.log(`Image ${index} clicked!`);
-            // });
+        viewport.animate({position: middlePoint, scale: 0.5});
+        window.scrollTo(0, document.body.scrollHeight);
 
     } catch (error) {
         console.error("Error loading images:", error);
@@ -102,8 +125,8 @@ const fetchAndLoadQueryResults = async () => {
 const initializePixi = async () => {
     if (!pixiContainer.value) return;
 
-    pixiApp = new Application();
-    await pixiApp.init({
+    app = new Application();
+    await app.init({
         canvas: document.querySelector("canvas") as HTMLCanvasElement,
         width: width.value,
         height: height.value,
@@ -112,9 +135,19 @@ const initializePixi = async () => {
         autoDensity: true,
         resolution: 2,
     });
-    globalThis.__PIXI_APP__ = pixiApp;
+    viewport = new Viewport({
+        passiveWheel: false,
+        events: app.renderer.events,
+        worldWidth: WORLD_WIDTH,
+        worldHeight: WORLD_HEIGHT
+    })
+      // activate plugins
+    viewport.drag().pinch().wheel().decelerate()
 
-    pixiContainer.value.appendChild(pixiApp.canvas);
+    globalThis.__PIXI_APP__ = app;
+
+    app.stage.addChild(viewport);
+    // pixiContainer.value.appendChild(app.canvas);
 
 };
 
