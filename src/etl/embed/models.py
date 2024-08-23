@@ -40,8 +40,8 @@ class ImageEmbedder(ArtEmbedder):
         """
         super().__init__(device)
 
-        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url)
-        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url)
+        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url, local_files_only=True)
+        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url, local_files_only=True)
         self.model.to(self.device)
 
     def _process(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
@@ -83,8 +83,8 @@ class TextEmbedder(ArtEmbedder):
         Initialize the TextEmbedder with the given Hugging Face base URL.
         """
         super().__init__()
-        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url)
-        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url)
+        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url, local_files_only=True)
+        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url, local_files_only=True)
         self.model.to(self.device)
 
     def _tokenize(self, texts: str | list[str]) -> torch.Tensor:

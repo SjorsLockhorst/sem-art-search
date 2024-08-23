@@ -4,7 +4,9 @@ from typing import Optional
 import numpy as np
 from joblib import dump, load
 from loguru import logger
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
 
 from src import MODEL_DIR
 from src.db.crud import retrieve_embeddings
@@ -20,10 +22,14 @@ def fit_on_image_embeddings(limit: Optional[int] = None):
     X = np.array([embedding.image for embedding in embeddings])
 
     logger.info("Starting to fit PCA model.")
-    pca = PCA(n_components=2, random_state=SEED)
-    coordinates = pca.fit_transform(X)
+    pca_pipeline = Pipeline([
+        ("projection", PCA(n_components=2, random_state=SEED)),
+        ("scaler", MinMaxScaler(feature_range=(0, 1)))
+    ])
+    pca_pipeline.fit(X) 
+    coordinates = pca_pipeline.transform(X)
     logger.info("Done fitting PCA model!")
-    return pca, coordinates
+    return pca_pipeline, coordinates
 
 
 def fit_pca_on_all():
