@@ -9,6 +9,7 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
 ## ML MVP
 - [ ] Attempt different dimention reduction algos
 - [ ] Tweak PCA further
+- [x] Integrate min max scaling into PCA
 ### UX MVP
 
 - [ ] Find examples for the design of the frontend
@@ -20,9 +21,9 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
 
 - [ ] Add backend route to allow finding the closest images to an existing Artobject
 
-- [ ] Have backend return (x, y) of the user inputted query
+- [x] Have backend return (x, y) of the user inputted query
 
-- [ ] Have frontend display the place of the user query.
+- [x] Have frontend display the place of the user query.
 
 ### ETL MVP
 - [ ] Implement ability to retrieve all images based on artist, for unkown artist based on type
