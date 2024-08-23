@@ -29,6 +29,12 @@ class ArtObjectsWithCoord(ArtObjects, table=False):
             y=y,
         )
 
+class ArtQueryWithCoordsResponse(SQLModel, table=False):
+    query_x: float
+    query_y: float
+
+    art_objects_with_coords: list[ArtObjectsWithCoord]
+
 
 class Embeddings(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)

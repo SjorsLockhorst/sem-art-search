@@ -4,46 +4,48 @@
             <h1 class="text-4xl font-bold">
                 <span class="italic text-blue-800">Art</span>ificial Intelligence
             </h1>
-            <div class="mt-6">
-                <form @submit.prevent="fetchAndLoadQueryResults"
-                    class="bg-white border-2 border-black px-8 pt-6 pb-8 mb-4">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="query">
-                            Query
-                        </label>
-                        <input v-model="artQuery"
-                            class="appearance-none border-black border-2 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            id="query" type="text" placeholder="A woman standing up and wearing a black dress" />
-                        <input v-model="topK"
-                            class="appearance-none border-black border-2 w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            id="topk" type="number" />
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <button :disabled="loading"
-                            class="bg-blue-800 inline-flex hover:bg-blue-700 text-white font-bold py-2 px-4 focus:outline-none focus:shadow-outline"
-                            type="submit">
-                            <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                </path>
-                            </svg>
-                            Search
-                        </button>
-                    </div>
-                </form>
-            </div>
+            <h2 class="text-l mt-1">Search through Rijksmuseum artworks based on <span class="italic text-blue-800">meaning</span></h2>
         </div>
-        <div ref="pixiContainer" class="w-full h-screen mt-4 overflow-hidden border-2 border-black">
+        <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
             <canvas></canvas>
+            <!-- Floating form in the top-left corner -->
+            <form @submit.prevent="fetchAndLoadQueryResults" 
+                  class="absolute top-8 left-8 shadow-md rounded-md bg-white w-96">
+                <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only">Search</label>
+                    <input v-model="artQuery" 
+                           type="search" 
+                           id="default-search"
+                           class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
+                           placeholder="A confused looking man" required />
+                    <button :disabled="loading" 
+                            type="submit"
+                            class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
+                        <svg v-if="loading" 
+                             class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                             xmlns="http://www.w3.org/2000/svg" 
+                             fill="none" 
+                             viewBox="0 0 24 24">
+                            <circle class="opacity-25" 
+                                    cx="12" 
+                                    cy="12" 
+                                    r="10" 
+                                    stroke="currentColor" 
+                                    stroke-width="4"></circle>
+                            <path class="opacity-75" 
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span v-if="!loading">Search</span>
+                    </button>
+            </form>
+            <!-- End of form -->
         </div>
     </div>
 </template>
 
+
 <script setup lang="ts">
-import { Application, Sprite, Assets, Point, Ticker, Container } from "pixi.js";
+import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import { Simple } from "~/utils/pixi-cull";
 
@@ -51,16 +53,21 @@ const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const topK = ref(5);
+const topK = ref(10);
 
 let app: Application;
 let viewport: Viewport;
 let cull: Simple;
 
-const WORLD_WIDTH = 10000;
-const WORLD_HEIGHT = 10000;
+const WORLD_WIDTH = 15000;
+const WORLD_HEIGHT = 15000;
 const imgWidth = 500;
 
+interface QueryResponse {
+    query_x: number;
+    query_y: number;
+    art_objects_with_coords: Artwork[]
+}
 
 interface Artwork {
     original_id: string;
@@ -72,15 +79,15 @@ interface Artwork {
     y: number;
 }
 
-const fetchArtworks = async (): Promise<Artwork[]> => {
+const fetchArtworks = async (): Promise<QueryResponse> => {
     try {
-        const response: Artwork[] = await $fetch<Artwork[]>(
+        const response: QueryResponse = await $fetch<QueryResponse>(
             `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
         );
         return response;
     } catch (error) {
         console.error("Error fetching artworks:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -103,9 +110,20 @@ const fetchAndLoadQueryResults = async () => {
     try {
         loading.value = true;
 
-        const artworks = await fetchArtworks();
+        const queryReponse = await fetchArtworks();
+        const artworks = queryReponse.art_objects_with_coords;
+        const queryPoint = new Point(queryReponse.query_x * WORLD_WIDTH, queryReponse.query_y * WORLD_HEIGHT);
         const {averageX, averageY} = getAverage(artworks);
         const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+
+        let text = new Text({text: artQuery.value, style: {
+            fontFamily: "Arial",
+            fontSize: 64
+
+        }});
+        text.position = middlePoint;
+        viewport.addChild(text);
+        viewport.animate( { position: queryPoint, scale: 0.15 });
 
 
         const container = new Container();
@@ -120,8 +138,6 @@ const fetchAndLoadQueryResults = async () => {
         })
 
         viewport.addChild(container);
-        window.scrollTo(0, document.body.scrollHeight);
-        viewport.animate({position: middlePoint, scale: 0.5});
 
     } catch (error) {
         console.error("Error loading images:", error);

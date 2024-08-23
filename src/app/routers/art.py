@@ -3,7 +3,7 @@ import numpy as np
 
 from src.db.crud import retrieve_best_image_match_w_embedding
 from src.etl.embed.models import TextEmbedder
-from src.db.models import ArtObjects, ArtObjectsWithCoord
+from src.db.models import ArtObjects, ArtObjectsWithCoord, ArtQueryWithCoordsResponse
 from src.etl.dim_reduc import load_pca, get_embedding_coordinates
 
 router = APIRouter()
@@ -21,11 +21,18 @@ MIN_Y = -0.3281755
 
 
 @router.get("/query", tags=["art"])
-def get_image_and_neighbors(art_query: str, top_k: int) -> list[ArtObjectsWithCoord]:
-    text_embedding = text_embedder(art_query)[0]
+def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsResponse:
+    text_embedding = text_embedder(art_query)[0].cpu().detach().numpy()
+
     art_objects_embeddings = retrieve_best_image_match_w_embedding(
-        text_embedding.cpu().detach().numpy(), top_k
+        text_embedding, top_k
     )
+    query_x, query_y = get_embedding_coordinates(
+        pca, text_embedding.reshape(1, -1))[0]
+
+    query_x = (query_x - MIN_X) / (MAX_X - MIN_X)
+    query_y = (query_y - MIN_Y) / (MAX_Y - MIN_Y)
+
     img_embeddings = []
     art_objects = []
 
@@ -45,4 +52,4 @@ def get_image_and_neighbors(art_query: str, top_k: int) -> list[ArtObjectsWithCo
             ArtObjectsWithCoord.from_art_object(art_object, x.item(), y.item())
         )
 
-    return art_objs_with_coords
+    return ArtQueryWithCoordsResponse(query_x=query_x, query_y=query_y, art_objects_with_coords=art_objs_with_coords)
