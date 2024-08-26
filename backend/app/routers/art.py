@@ -48,7 +48,8 @@ def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsRes
     coordinates[:, 1] = (coordinates[:, 1] - MIN_Y) / (MAX_Y - MIN_Y)
 
     art_objs_with_coords = []
-    for art_object, coords in zip(art_objects, coordinates):
+
+    for art_object, coords in zip(art_objects, coordinates, strict=False):
         x, y = coords
         art_objs_with_coords.append(ArtObjectsWithCoord.from_art_object(art_object, x.item(), y.item()))
 
