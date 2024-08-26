@@ -1,5 +1,6 @@
 import asyncio
 from enum import StrEnum
+
 import httpx
 from loguru import logger
 
@@ -16,18 +17,14 @@ class Client:
     def __init__(self, language: DescriptionLanguages, api_key: str):
         self.url = f"https://www.rijksmuseum.nl/api/{language}/collection?key={api_key}&imgonly=True"
 
-    async def _get_art_object(
-        self, client: httpx.AsyncClient, url: str, params: httpx.QueryParams
-    ) -> list[object]:
+    async def _get_art_object(self, client: httpx.AsyncClient, url: str, params: httpx.QueryParams) -> list[object]:
         r = await client.get(url, params=params)
 
         if r.status_code != 200:
             logger.error(f"Error fetching results: {r.status_code}")
 
         data = r.json()
-        results = data.get("artObjects", [])
-
-        return results
+        return data.get("artObjects", [])
 
     # TODO: Implement this after MVP phase
     def _get_objects_with_known_artist(self):
@@ -147,9 +144,7 @@ class Client:
                 params = {"ps": ps, "p": p, "principalMaker": artist}
                 response = httpx.get(self.url, params=params)
                 if response.status_code != 200:
-                    logger.error(
-                        f"Error fetching results for {artist}: {response.status_code}"
-                    )
+                    logger.error(f"Error fetching results for {artist}: {response.status_code}")
                     break
 
                 data = response.json()
@@ -289,6 +284,7 @@ class Client:
         -------
         List[ArtObject]
             A list of ArtObjects containing the ID, image url, title and artist of the object
+
         """
         all_results = []
         ps = 100  # Number of results per page. Cannot exceed 100
@@ -307,11 +303,7 @@ class Client:
                     logger.info(f"Fetching {ps} objects on page {p + i}")
                     params = httpx.QueryParams({"p": p + i, "ps": ps})
                     tasks.append(
-                        asyncio.ensure_future(
-                            self._get_art_object(
-                                client=client, url=self.url, params=params
-                            )
-                        )
+                        asyncio.ensure_future(self._get_art_object(client=client, url=self.url, params=params))
                     )
 
                 responses = await asyncio.gather(*tasks)
