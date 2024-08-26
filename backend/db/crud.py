@@ -4,7 +4,7 @@ import numpy as np
 from typing import Optional
 from sqlmodel import Session, col, select
 
-from src.db.models import ArtObjects, Embeddings, engine
+from db.models import ArtObjects, Embeddings, engine
 
 
 def check_count_art_objects() -> int:
@@ -60,7 +60,6 @@ def retrieve_unembedded_image_art(count: int):
 
     """
     with Session(engine) as session:
-
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
             .limit(count)

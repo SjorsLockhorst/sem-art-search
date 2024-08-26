@@ -1,10 +1,11 @@
-from fastapi import APIRouter
 import numpy as np
+from fastapi import APIRouter
+from fastapi.exceptions import HTTPException
 
-from src.db.crud import retrieve_best_image_match_w_embedding
-from src.etl.embed.models import TextEmbedder
-from src.db.models import ArtObjects, ArtObjectsWithCoord, ArtQueryWithCoordsResponse
-from src.etl.dim_reduc import load_pca, get_embedding_coordinates
+from db.crud import retrieve_best_image_match_w_embedding
+from db.models import ArtObjectsWithCoord, ArtQueryWithCoordsResponse
+from etl.dim_reduc import get_embedding_coordinates, load_pca
+from etl.embed.models import TextEmbedder
 
 router = APIRouter()
 
@@ -24,11 +25,12 @@ MIN_Y = -0.3281755
 def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsResponse:
     text_embedding = text_embedder(art_query)[0].cpu().detach().numpy()
 
-    art_objects_embeddings = retrieve_best_image_match_w_embedding(
-        text_embedding, top_k
-    )
-    query_x, query_y = get_embedding_coordinates(
-        pca, text_embedding.reshape(1, -1))[0]
+    art_objects_embeddings = retrieve_best_image_match_w_embedding(text_embedding, top_k)
+
+    if not art_objects_embeddings:
+        raise HTTPException(status_code=404, detail="No art objects found")
+
+    query_x, query_y = get_embedding_coordinates(pca, text_embedding.reshape(1, -1))[0]
 
     query_x = (query_x - MIN_X) / (MAX_X - MIN_X)
     query_y = (query_y - MIN_Y) / (MAX_Y - MIN_Y)
@@ -48,8 +50,6 @@ def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsRes
     art_objs_with_coords = []
     for art_object, coords in zip(art_objects, coordinates):
         x, y = coords
-        art_objs_with_coords.append(
-            ArtObjectsWithCoord.from_art_object(art_object, x.item(), y.item())
-        )
+        art_objs_with_coords.append(ArtObjectsWithCoord.from_art_object(art_object, x.item(), y.item()))
 
     return ArtQueryWithCoordsResponse(query_x=query_x, query_y=query_y, art_objects_with_coords=art_objs_with_coords)

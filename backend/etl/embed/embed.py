@@ -8,10 +8,10 @@ from PIL import Image
 import numpy as np
 from sqlalchemy import exc
 
-from src.db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
-from src.etl.embed.models import ImageEmbedder, TextEmbedder
-from src.etl.errors import EmbeddingError
-from src.etl.images import fetch_images_from_pairs
+from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
+from etl.embed.models import ImageEmbedder, TextEmbedder
+from etl.errors import EmbeddingError
+from etl.images import fetch_images_from_pairs
 
 
 def get_images_embeddings(

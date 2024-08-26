@@ -1,5 +1,5 @@
 from typing import Any
-
+from config import settings
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, create_engine, text
 from sqlmodel import Field, SQLModel
@@ -29,6 +29,7 @@ class ArtObjectsWithCoord(ArtObjects, table=False):
             y=y,
         )
 
+
 class ArtQueryWithCoordsResponse(SQLModel, table=False):
     query_x: float
     query_y: float
@@ -42,7 +43,7 @@ class Embeddings(SQLModel, table=True):
     art_object_id: int = Field(foreign_key="artobjects.id", unique=True)
 
 
-engine = create_engine("postgresql+psycopg2://postgres:mysecretpassword@localhost:5432")
+engine = create_engine(settings.database_url)
 
 
 def create_db_and_tables():

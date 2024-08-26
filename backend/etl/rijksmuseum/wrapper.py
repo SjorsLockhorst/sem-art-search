@@ -3,8 +3,8 @@ from enum import StrEnum
 import httpx
 from loguru import logger
 
-from src.db.crud import save_objects_to_database
-from src.db.models import ArtObjects
+from db.crud import save_objects_to_database
+from db.models import ArtObjects
 
 
 class DescriptionLanguages(StrEnum):

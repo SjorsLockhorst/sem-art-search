@@ -1,6 +1,6 @@
 import asyncio
-from src.etl.extract import run_extract_stage
-from src.etl.embed.embed import run_embed_stage
+from etl.extract import run_extract_stage
+from etl.embed.embed import run_embed_stage
 from loguru import logger
 
 

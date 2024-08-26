@@ -3,9 +3,9 @@ import os
 from loguru import logger
 from dotenv import load_dotenv
 
-from src.etl.errors import MissingApiKeyError, ExtractError
-from src.etl.rijksmuseum.wrapper import Client, DescriptionLanguages
-from src.db.crud import check_count_art_objects
+from etl.errors import MissingApiKeyError, ExtractError
+from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
+from db.crud import check_count_art_objects
 
 load_dotenv()
 

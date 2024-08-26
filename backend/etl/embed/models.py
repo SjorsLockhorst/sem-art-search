@@ -10,8 +10,8 @@ from transformers import (
     CLIPTextModelWithProjection,
 )
 
-from src.etl.errors import EmbeddingError
-from src.etl.embed.config import HF_BASE_URL
+from etl.errors import EmbeddingError
+from etl.embed.config import HF_BASE_URL
 from loguru import logger
 
 
@@ -34,7 +34,7 @@ class ArtEmbedder:
 
 
 class ImageEmbedder(ArtEmbedder):
-    def __init__(self, device: Optional[str]= None, hf_base_url: str = HF_BASE_URL):
+    def __init__(self, device: Optional[str] = None, hf_base_url: str = HF_BASE_URL):
         """
         Initialize the ImageEmbedder with the given Hugging Face base URL.
         """
@@ -69,8 +69,7 @@ class ImageEmbedder(ArtEmbedder):
             inputs.to(self.device)
             image_embeds = self._embed(inputs)
             proj_embeddings = self.norm(image_embeds)
-            logger.info(
-                f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:
@@ -112,8 +111,7 @@ class TextEmbedder(ArtEmbedder):
             inputs.to(self.device)
             text_embeds = self._embed(inputs)
             proj_embeddings = self.norm(text_embeds)
-            logger.info(
-                f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:

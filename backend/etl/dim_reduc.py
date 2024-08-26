@@ -1,16 +1,14 @@
-import os
 from typing import Optional
 
 import numpy as np
 from joblib import dump, load
 from loguru import logger
 from sklearn.decomposition import PCA
-
-from src import MODEL_DIR
-from src.db.crud import retrieve_embeddings
+from etl.constants import MODEL_DIR
+from db.crud import retrieve_embeddings
 
 SEED = 42
-PCA_PATH = os.path.join(MODEL_DIR, "pca.joblib")
+PCA_PATH = MODEL_DIR / "pca.joblib"
 
 
 def fit_on_image_embeddings(limit: Optional[int] = None):
