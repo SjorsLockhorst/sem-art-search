@@ -2,10 +2,10 @@ import asyncio
 from itertools import batched
 
 import httpx
+import numpy as np
 import torch
 from loguru import logger
 from PIL import Image
-import numpy as np
 from sqlalchemy import exc
 
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
@@ -20,13 +20,13 @@ def get_images_embeddings(
     """
     Generate embeddings for a list of images with their IDs.
     """
-    ids, imgs = zip(*images)
+    ids, imgs = zip(*images, strict=False)
     embeddings = image_embedder(list(imgs))
 
     if len(ids) != len(embeddings):
         raise EmbeddingError(msg="Amount of IDs does not match amount of embeddings")
 
-    return list(zip(ids, embeddings))
+    return list(zip(ids, embeddings, strict=False))
 
 
 def embed_text(query: str) -> np.ndarray:
@@ -39,8 +39,10 @@ async def run_embed_stage(image_count: int, batch_size: int):
     Main function to retrieve, embed, and store images in batches.
 
     Args:
+    ----
         image_count (int): The total number of images to retrieve.
         batch_size (int): The number of images to retrieve per batch.
+
     """
     try:
         image_embedder = ImageEmbedder()
@@ -55,24 +57,15 @@ async def run_embed_stage(image_count: int, batch_size: int):
 
             async def producer():
                 n = image_count // batch_size
-                for batch_id, id_url_batch in enumerate(
-                    batched(id_url_pairs, batch_size)
-                ):
-                    logger.info(
-                        f"Starting to fetch {batch_size} new images. "
-                        f"Progress: ({batch_id}/{n})"
-                    )
+                for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
+                    logger.info(f"Starting to fetch {batch_size} new images. " f"Progress: ({batch_id}/{n})")
                     ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
                     if ids_and_images:
                         await task_queue.put(ids_and_images)
                     else:
-                        logger.debug(
-                            "No images retrived in batch, skipped entire batch"
-                        )
+                        logger.debug("No images retrived in batch, skipped entire batch")
 
-                    logger.info(
-                        f"Done fetching {batch_size} images. Batch id: {batch_id}"
-                    )
+                    logger.info(f"Done fetching {batch_size} images. Batch id: {batch_id}")
 
                 # Sentinel value to indicate completion
                 await task_queue.put(None)
@@ -85,9 +78,7 @@ async def run_embed_stage(image_count: int, batch_size: int):
                         break
 
                     logger.info(f"Starting to embed batch id: {embed_batch_id}")
-                    ids_and_embeddings = get_images_embeddings(
-                        ids_and_images, image_embedder
-                    )
+                    ids_and_embeddings = get_images_embeddings(ids_and_images, image_embedder)
                     insert_batch_image_embeddings(ids_and_embeddings)
                     logger.info(f"Done embedding batch id: {embed_batch_id}")
                     embed_batch_id += 1
