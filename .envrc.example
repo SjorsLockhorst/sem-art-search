@@ -1,0 +1,5 @@
+export RIJKSMUSEUM_API_KEY=XXX
+export DATABASE_URL=XXX
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=password
+export POSTGRES_DB=postgres
