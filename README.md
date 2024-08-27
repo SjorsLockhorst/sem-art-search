@@ -21,7 +21,7 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
 - [ ] Make images clickable:
 
   - Popup that shows more info about the object, maybe link to Rijks
-  - Allow selecting that image as image for new query
+  - [x] Allow selecting that image as image for new query
 
 - [ ] Add backend route to allow finding the closest images to an existing Artobject
 

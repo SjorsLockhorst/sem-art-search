@@ -9,7 +9,8 @@ from db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(
+            select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -77,7 +78,8 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
         top_ids = session.exec(
             select(Embeddings.art_object_id)
             .order_by(
-                Embeddings.image.cosine_distance(embedding.cpu().detach().numpy())
+                Embeddings.image.cosine_distance(
+                    embedding.cpu().detach().numpy())
             )
             .limit(top_k)
         ).all()
@@ -111,3 +113,11 @@ def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
         embeddings = session.exec(query).all()
 
     return list(embeddings)
+
+
+def retrieve_embedding_by_id(id: int) -> Embeddings | None:
+    with Session(engine) as session:
+        return session.exec(
+            select(Embeddings)
+            .where(Embeddings.art_object_id == id)
+        ).first()

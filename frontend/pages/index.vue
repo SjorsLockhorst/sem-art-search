@@ -54,7 +54,7 @@ const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const topK = ref(10);
+const topK = ref(5);
 
 let app: Application;
 let viewport: Viewport;
@@ -79,6 +79,18 @@ interface Artwork {
     long_title: string;
     x: number;
     y: number;
+}
+
+const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
+    try {
+        const response = await $fetch<QueryResponse>(
+            `http://127.0.0.1:8000/image?id=${id}&top_k=${topK.value}`
+        );
+        return response;
+    } catch (error) {
+        console.error("Error fetching artworks:", error);
+        throw error;
+    }
 }
 
 const fetchArtworks = async (): Promise<QueryResponse> => {
@@ -129,25 +141,10 @@ function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
     ticker.start();
 }
 
-const fetchAndLoadQueryResults = async () => {
-    try {
-        loading.value = true;
-
-        const queryReponse = await fetchArtworks();
-        const artworks = queryReponse.art_objects_with_coords;
-        const queryPoint = new Point(queryReponse.query_x * WORLD_WIDTH, queryReponse.query_y * WORLD_HEIGHT);
+const drawArtWorks = (artworks: Artwork[]) => {
         const {averageX, averageY} = getAverage(artworks);
         const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
-
-
-        let text = new Text({text: artQuery.value, style: {
-            fontFamily: "Arial",
-            fontSize: 64
-
-        }});
-        text.position = middlePoint;
-        container.addChild(text);
-        viewport.animate( { position: queryPoint, scale: 0.15 });
+        viewport.animate( { position: middlePoint, scale: 0.15 });
 
         artworks.forEach(async (artwork) => {
             const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
@@ -159,11 +156,34 @@ const fetchAndLoadQueryResults = async () => {
 
             sprite.on('pointerenter', () => {sprite.zIndex += 10000, animateScale(sprite, .2)});
             sprite.on('pointerleave', () => {sprite.zIndex -= 10000, animateScale(sprite, -.2)});
+            sprite.on('mousedown', async () => {
+                const newArtworks = await fetchArtworksById(artwork.id);
+                drawArtWorks(newArtworks.art_objects_with_coords);
+            });
 
             cull.add(sprite);
             container.addChild(sprite);
         })
 
+
+
+}
+
+const fetchAndLoadQueryResults = async () => {
+    try {
+        loading.value = true;
+
+        const queryResponse = await fetchArtworks();
+        const queryPoint = new Point(queryResponse.query_x * WORLD_WIDTH, queryResponse.query_y * WORLD_HEIGHT);
+
+        let text = new Text({text: artQuery.value, style: {
+            fontFamily: "Arial",
+            fontSize: 128
+
+        }});
+        text.position = queryPoint;
+        container.addChild(text);
+        drawArtWorks(queryResponse.art_objects_with_coords);
 
     } catch (error) {
         console.error("Error loading images:", error);
