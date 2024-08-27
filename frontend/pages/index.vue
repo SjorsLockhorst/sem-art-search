@@ -10,33 +10,33 @@
             <canvas></canvas>
             <!-- Floating form in the top-left corner -->
             <form @submit.prevent="fetchAndLoadQueryResults" 
-                  class="absolute top-8 left-8 shadow-md rounded-md bg-white w-96">
+                class="absolute top-8 left-8 shadow-md rounded-md bg-white w-96">
                 <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only">Search</label>
-                    <input v-model="artQuery" 
-                           type="search" 
-                           id="default-search"
-                           class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
-                           placeholder="A woman standing in a black dress" required />
-                    <button :disabled="loading" 
-                            type="submit"
-                            class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
-                        <svg v-if="loading" 
-                             class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                             xmlns="http://www.w3.org/2000/svg" 
-                             fill="none" 
-                             viewBox="0 0 24 24">
-                            <circle class="opacity-25" 
-                                    cx="12" 
-                                    cy="12" 
-                                    r="10" 
-                                    stroke="currentColor" 
-                                    stroke-width="4"></circle>
-                            <path class="opacity-75" 
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span v-if="!loading">Search</span>
-                    </button>
+                <input v-model="artQuery" 
+                    type="search" 
+                    id="default-search"
+                    class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
+                    placeholder="A woman standing in a black dress" required />
+                <button :disabled="loading" 
+                    type="submit"
+                    class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
+                    <svg v-if="loading" 
+                        class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg" 
+                        fill="none" 
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" 
+                            cx="12" 
+                            cy="12" 
+                            r="10" 
+                            stroke="currentColor" 
+                            stroke-width="4"></circle>
+                        <path class="opacity-75" 
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span v-if="!loading">Search</span>
+                </button>
             </form>
             <!-- End of form -->
         </div>
@@ -45,6 +45,7 @@
 
 
 <script setup lang="ts">
+import { ref, onMounted } from "vue";
 import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import { Simple } from "~/utils/pixi-cull";
@@ -57,6 +58,7 @@ const topK = ref(10);
 
 let app: Application;
 let viewport: Viewport;
+let container: Container;
 let cull: Simple;
 
 const WORLD_WIDTH = 15000;
@@ -105,6 +107,27 @@ function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
         averageY: total.y / count
     };
 };
+function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
+    const ticker = new Ticker();
+    const startTime = Date.now();
+
+    const startScaleX = sprite.scale.x;
+    const startScaleY = sprite.scale.y;
+
+    ticker.add(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+
+        sprite.scale.x = startScaleX + (startScaleX * (1 + factor) - startScaleX) * progress;
+        sprite.scale.y = startScaleY + (startScaleY * (1 + factor) - startScaleY) * progress;
+
+        if (progress === 1) {
+            ticker.stop();
+        }
+    });
+
+    ticker.start();
+}
 
 const fetchAndLoadQueryResults = async () => {
     try {
@@ -116,7 +139,6 @@ const fetchAndLoadQueryResults = async () => {
         const {averageX, averageY} = getAverage(artworks);
         const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
 
-        const container = new Container();
 
         let text = new Text({text: artQuery.value, style: {
             fontFamily: "Arial",
@@ -127,18 +149,21 @@ const fetchAndLoadQueryResults = async () => {
         container.addChild(text);
         viewport.animate( { position: queryPoint, scale: 0.15 });
 
-
-
         artworks.forEach(async (artwork) => {
             const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
             const sprite = Sprite.from(texture);
+            sprite.anchor.set(0.5)
             sprite.x = artwork.x * WORLD_WIDTH;
             sprite.y = artwork.y * WORLD_HEIGHT;
+            sprite.interactive = true;
+
+            sprite.on('pointerenter', () => {sprite.zIndex += 10000, animateScale(sprite, .2)});
+            sprite.on('pointerleave', () => {sprite.zIndex -= 10000, animateScale(sprite, -.2)});
+
             cull.add(sprite);
             container.addChild(sprite);
         })
 
-        viewport.addChild(container);
 
     } catch (error) {
         console.error("Error loading images:", error);
@@ -160,6 +185,7 @@ const initializePixi = async () => {
         autoDensity: true,
         resolution: 2,
     });
+    globalThis.__PIXI_APP__ = app;
 
     pixiContainer.value.appendChild(app.canvas);
 
@@ -169,7 +195,7 @@ const initializePixi = async () => {
         worldWidth: WORLD_WIDTH,
         worldHeight: WORLD_HEIGHT
     })
-      // activate plugins
+    // activate plugins
     viewport.drag().pinch().wheel().decelerate()
 
     app.stage.addChild(viewport);
@@ -185,12 +211,18 @@ const initializePixi = async () => {
         if (viewport.dirty) {
             cull.cull(viewport.getVisibleBounds(), true);
             viewport.dirty = false;
+            console.log(cull.stats())
         }
     });
     ticker.start();
+
+    container = new Container();
+    viewport.addChild(container);
+
 };
 
 onMounted(() => {
     initializePixi();
 });
+
 </script>
