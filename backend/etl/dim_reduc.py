@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 import numpy as np
@@ -9,11 +8,11 @@ from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 from sklearn.base import TransformerMixin
 
-from src import MODEL_DIR
-from src.db.crud import retrieve_embeddings
+from db.crud import retrieve_embeddings
+from etl.constants import MODEL_DIR
 
 SEED = 42
-PCA_PATH = os.path.join(MODEL_DIR, "pca.joblib")
+PCA_PATH = MODEL_DIR / "pca.joblib"
 
 def build_projection_pipe(projection: TransformerMixin) -> Pipeline:
     return Pipeline([

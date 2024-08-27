@@ -1,11 +1,12 @@
 import asyncio
 import os
-from loguru import logger
-from dotenv import load_dotenv
 
-from src.etl.errors import MissingApiKeyError, ExtractError
-from src.etl.rijksmuseum.wrapper import Client, DescriptionLanguages
-from src.db.crud import check_count_art_objects
+from dotenv import load_dotenv
+from loguru import logger
+
+from db.crud import check_count_art_objects
+from etl.errors import ExtractError, MissingApiKeyError
+from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
 
 load_dotenv()
 
@@ -21,9 +22,7 @@ def get_api_key(env_var: str) -> str:
 
 
 # During the MVP phase this is limited to a subset of 10,000 objects
-async def fetch_art_objects(
-    api_key: str, language: DescriptionLanguages = DescriptionLanguages.NL
-):
+async def fetch_art_objects(api_key: str, language: DescriptionLanguages = DescriptionLanguages.NL):
     """
     Fetch the initial 10,000 art objects from the Rijksmuseum API.
     """
@@ -44,9 +43,7 @@ async def run_extract_stage():
 
         # After MVP this can be increased or removed
         if current_count_art_objects >= 10_000:
-            logger.info(
-                "Initial 10,000 objects already in the database. Stopping ETL during MVP phase"
-            )
+            logger.info("Initial 10,000 objects already in the database. Stopping ETL during MVP phase")
             return
 
         art_objects = await fetch_art_objects(api_key)

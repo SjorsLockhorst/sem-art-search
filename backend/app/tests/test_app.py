@@ -2,9 +2,9 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 import numpy as np
 
-from src.app.main import app
-from src.db.models import Embeddings, engine
-from src.etl.dim_reduc import load_pca, get_embedding_coordinates
+from app.main import app
+from db.models import Embeddings, engine
+from etl.dim_reduc import load_pca, get_embedding_coordinates
 
 client = TestClient(app)
 
@@ -23,7 +23,7 @@ def test_art_query():
         "/query",
         params={
             "art_query": "A portrait of a woman dressed in black, painted bij Rembrandt",
-            "top_k": TOP_K
+            "top_k": TOP_K,
         },
     )
     assert response.status_code == 200
@@ -31,6 +31,7 @@ def test_art_query():
 
     assert len(art_objects) == TOP_K
     assert art_objects[0]["original_id"] == oopjen_id
+
 
 # TODO: Remove this, integrate this somewhere useful to get coords automatically
 def test_max_mean():
