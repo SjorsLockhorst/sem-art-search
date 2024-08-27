@@ -3,30 +3,41 @@ from typing import Optional
 import numpy as np
 from joblib import dump, load
 from loguru import logger
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
-from etl.constants import MODEL_DIR
+from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin
+
 from db.crud import retrieve_embeddings
+from etl.constants import MODEL_DIR
 
 SEED = 42
 PCA_PATH = MODEL_DIR / "pca.joblib"
 
+def build_projection_pipe(projection: TransformerMixin) -> Pipeline:
+    return Pipeline([
+        ("projection", projection),
+        ("scaler", MinMaxScaler(feature_range=(0, 1)))
+    ])
 
-def fit_on_image_embeddings(limit: Optional[int] = None):
+
+def fit_pca_on_image_embeddings(limit: Optional[int] = None):
     logger.info("Starting to retrieve embeddings from DB.")
     embeddings = retrieve_embeddings(limit=limit)
     logger.info("Done retrieving embeddings")
     X = np.array([embedding.image for embedding in embeddings])
 
     logger.info("Starting to fit PCA model.")
-    pca = PCA(n_components=2, random_state=SEED)
-    coordinates = pca.fit_transform(X)
+    pca_pipeline = build_projection_pipe(PCA(n_components=2, random_state=SEED))
+    pca_pipeline.fit(X) 
+    coordinates = pca_pipeline.transform(X)
     logger.info("Done fitting PCA model!")
-    return pca, coordinates
+    return pca_pipeline, coordinates
 
 
 def fit_pca_on_all():
     logger.info("Starting to fit TSNE model on all image embeddings in DB.")
-    pca, _ = fit_on_image_embeddings()
+    pca, _ = fit_pca_on_image_embeddings()
     logger.info("Done fitting model.")
     logger.info(f"Saving model to {PCA_PATH}")
     dump(pca, PCA_PATH)

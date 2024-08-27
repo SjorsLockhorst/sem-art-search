@@ -13,13 +13,6 @@ text_embedder = TextEmbedder(device="cpu")
 
 pca = load_pca()
 
-# TODO: These shouldn't be hardcoded, test_app.py has code that finds these numbers
-MAX_X = 0.41522586
-MIN_X = -0.44345528
-
-MAX_Y = 0.49789447
-MIN_Y = -0.3281755
-
 
 @router.get("/query", tags=["art"])
 def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsResponse:
@@ -32,9 +25,6 @@ def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsRes
 
     query_x, query_y = get_embedding_coordinates(pca, text_embedding.reshape(1, -1))[0]
 
-    query_x = (query_x - MIN_X) / (MAX_X - MIN_X)
-    query_y = (query_y - MIN_Y) / (MAX_Y - MIN_Y)
-
     img_embeddings = []
     art_objects = []
 
@@ -44,8 +34,6 @@ def get_image_and_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsRes
 
     all_img_embeddings = np.stack(img_embeddings)
     coordinates = get_embedding_coordinates(pca, all_img_embeddings)
-    coordinates[:, 0] = (coordinates[:, 0] - MIN_X) / (MAX_X - MIN_X)
-    coordinates[:, 1] = (coordinates[:, 1] - MIN_Y) / (MAX_Y - MIN_Y)
 
     art_objs_with_coords = []
 

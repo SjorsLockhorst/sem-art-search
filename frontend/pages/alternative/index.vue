@@ -16,7 +16,7 @@
                            type="search" 
                            id="default-search"
                            class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
-                           placeholder="A confused looking man" required />
+                           placeholder="A woman standing in a black dress" required />
                     <button :disabled="loading" 
                             type="submit"
                             class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
@@ -116,17 +116,18 @@ const fetchAndLoadQueryResults = async () => {
         const {averageX, averageY} = getAverage(artworks);
         const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
 
+        const container = new Container();
+
         let text = new Text({text: artQuery.value, style: {
             fontFamily: "Arial",
             fontSize: 64
 
         }});
         text.position = middlePoint;
-        viewport.addChild(text);
+        container.addChild(text);
         viewport.animate( { position: queryPoint, scale: 0.15 });
 
 
-        const container = new Container();
 
         artworks.forEach(async (artwork) => {
             const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
