@@ -30,5 +30,6 @@ if __name__ == "__main__":
     embedding = embed_text(args.query)
     art_objects = retrieve_best_image_match(embedding, args.top_k)
 
+    print(art_objects[0])
     image = Image.open(requests.get(art_objects[0].image_url, stream=True).raw)
     image.show()

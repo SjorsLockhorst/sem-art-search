@@ -16,7 +16,7 @@ class ArtObjects(SQLModel, table=True):
 class Embeddings(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     image: Any = Field(sa_column=Column(Vector(512)))
-    art_object_id: int = Field(foreign_key="artobjects.id")
+    art_object_id: int = Field(foreign_key="artobjects.id", unique=True)
 
 
 engine = create_engine("postgresql+psycopg2://postgres:mysecretpassword@localhost:5432")
