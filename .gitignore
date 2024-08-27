@@ -5,6 +5,7 @@ __pycache__/
 *$py.class
 *-env/
 postgres-data/
+.huggingface/
 
 # C extensions
 *.so

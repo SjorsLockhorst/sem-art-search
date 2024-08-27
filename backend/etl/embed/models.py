@@ -12,6 +12,9 @@ from transformers import (
 
 from etl.embed.config import HF_BASE_URL
 from etl.errors import EmbeddingError
+from etl.constants import ROOT_DIR
+
+HF_CACHE_DIR = ROOT_DIR.parent / ".huggingface"
 
 
 class ArtEmbedder:
@@ -39,8 +42,10 @@ class ImageEmbedder(ArtEmbedder):
         """
         super().__init__(device)
 
-        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url, local_files_only=True)
-        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url, local_files_only=True)
+        self.processor = CLIPImageProcessor.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.model = CLIPVisionModelWithProjection.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
         self.model.to(self.device)
 
     def _process(self, images: Image.Image | list[Image.Image]) -> torch.Tensor:
@@ -68,7 +73,8 @@ class ImageEmbedder(ArtEmbedder):
             inputs.to(self.device)
             image_embeds = self._embed(inputs)
             proj_embeddings = self.norm(image_embeds)
-            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:
@@ -81,8 +87,10 @@ class TextEmbedder(ArtEmbedder):
         Initialize the TextEmbedder with the given Hugging Face base URL.
         """
         super().__init__()
-        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url, local_files_only=True)
-        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url, local_files_only=True)
+        self.tokenizer = CLIPTokenizerFast.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.model = CLIPTextModelWithProjection.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
         self.model.to(self.device)
 
     def _tokenize(self, texts: str | list[str]) -> torch.Tensor:
@@ -110,8 +118,15 @@ class TextEmbedder(ArtEmbedder):
             inputs.to(self.device)
             text_embeds = self._embed(inputs)
             proj_embeddings = self.norm(text_embeds)
-            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:
             raise EmbeddingError(msg=str(e))
+
+if __name__ == "__main__":
+    # To be able to on demand pre download the models
+    TextEmbedder()
+    ImageEmbedder()
+

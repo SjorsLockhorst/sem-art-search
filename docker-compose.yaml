@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
 
   backend:
     build:
@@ -30,6 +30,7 @@ services:
     volumes:
       - ./backend:/app/backend
       - /app/backend/__pycache__
+      - ./backend/.huggingface:/app/backend/.huggingface
 
   frontend:
     build:
@@ -46,9 +47,6 @@ services:
       - ./frontend:/app/frontend
       - /app/frontend/node_modules
       - /app/frontend/.nuxt
-
-volumes:
-  postgres_data:
 
 networks:
   app_network:
