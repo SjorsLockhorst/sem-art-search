@@ -42,6 +42,7 @@
             </form>
 
         <div v-if="selectedArtwork" class="absolute top-32 left-8 shadow-md rounded-md bg-neutral-100 w-96 p-4">
+            <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title" class="max-h-[50vh]">
             <h3 class="font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
             <h4>{{ selectedArtwork.long_title}} </h4>
                 <button :disabled="loading" 
@@ -81,7 +82,7 @@ const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const topK = ref(5);
+const topK = ref(15);
 const selectedArtworkIndex = ref<number | null>(null);
 const allArtworks = ref<Artwork[]>([]);
 
@@ -186,7 +187,8 @@ const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
         .filter(artwork => !seenArtObjects.has(artwork.id))
         .forEach(async (artwork, index) => {
             seenArtObjects.add(artwork.id)
-            const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
+            artwork.image_url = artwork.image_url.replace("=s0", `=w${imgWidth}`)
+            const texture = await Assets.load({src: artwork.image_url, loadParser: "loadTextures"});
             const sprite = Sprite.from(texture);
             sprite.anchor.set(0.5)
             sprite.x = artwork.x * WORLD_WIDTH;
