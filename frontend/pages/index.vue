@@ -89,6 +89,7 @@ let app: Application;
 let viewport: Viewport;
 let container: Container;
 let cull: Simple;
+let seenArtObjects: Set<number> = new Set<number>();
 
 const WORLD_WIDTH = 15000;
 const WORLD_HEIGHT = 15000;
@@ -176,43 +177,44 @@ function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
     ticker.start();
 }
 
-const drawArtWorks = (artworks: Artwork[]) => {
+const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
     const {averageX, averageY} = getAverage(artworks);
     const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
     viewport.animate( { position: middlePoint, scale: 0.15 });
 
-    artworks.forEach(async (artwork, index) => {
-        const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
-        const sprite = Sprite.from(texture);
-        sprite.anchor.set(0.5)
-        sprite.x = artwork.x * WORLD_WIDTH;
-        sprite.y = artwork.y * WORLD_HEIGHT;
-        sprite.interactive = true;
+    artworks
+        .filter(artwork => !seenArtObjects.has(artwork.id))
+        .forEach(async (artwork, index) => {
+            seenArtObjects.add(artwork.id)
+            const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
+            const sprite = Sprite.from(texture);
+            sprite.anchor.set(0.5)
+            sprite.x = artwork.x * WORLD_WIDTH;
+            sprite.y = artwork.y * WORLD_HEIGHT;
+            sprite.interactive = true;
 
-        sprite.on('pointerenter', () => {
-            sprite.zIndex += 10000
-            animateScale(sprite, .2)
-            selectedArtworkIndex.value = index
-        });
-        sprite.on('pointerleave', () => {
-            sprite.zIndex -= 10000
-            animateScale(sprite, -.2)
-        });
-        sprite.on('mousedown', async () => {
-            selectedArtworkIndex.value = index
-        });
+            sprite.on('pointerenter', () => {
+                sprite.zIndex += 10000
+                animateScale(sprite, .2)
+                selectedArtworkIndex.value = index + indexOffset
+            });
+            sprite.on('pointerleave', () => {
+                sprite.zIndex -= 10000
+                animateScale(sprite, -.2)
+            });
+            sprite.on('mousedown', async () => {
+                selectedArtworkIndex.value = index + indexOffset
+            });
 
-        cull.add(sprite);
-        container.addChild(sprite);
+            cull.add(sprite);
+            container.addChild(sprite);
     })
-
-
-
 }
 
 const loadImageResults = async (artwork_id: number) => {
     const newArtworks = await fetchArtworksById(artwork_id);
-    drawArtWorks(newArtworks.art_objects_with_coords);
+    drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+    allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
 }
 
 const fetchAndLoadQueryResults = async () => {
@@ -227,8 +229,8 @@ const fetchAndLoadQueryResults = async () => {
         }});
         text.position = queryPoint;
         container.addChild(text);
+        drawArtWorks(queryResponse.art_objects_with_coords, allArtworks.value.length);
         allArtworks.value = [...allArtworks.value, ...queryResponse.art_objects_with_coords]
-        drawArtWorks(queryResponse.art_objects_with_coords);
 
     } catch (error) {
         console.error("Error loading images:", error);
