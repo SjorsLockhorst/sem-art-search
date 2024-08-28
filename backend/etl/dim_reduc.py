@@ -1,12 +1,10 @@
-from typing import Optional
-
 import numpy as np
 from joblib import dump, load
 from loguru import logger
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.base import TransformerMixin
 from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
-from sklearn.base import TransformerMixin
+from sklearn.preprocessing import MinMaxScaler
 
 from db.crud import retrieve_embeddings
 from etl.constants import MODEL_DIR
@@ -14,14 +12,12 @@ from etl.constants import MODEL_DIR
 SEED = 42
 PCA_PATH = MODEL_DIR / "pca.joblib"
 
+
 def build_projection_pipe(projection: TransformerMixin) -> Pipeline:
-    return Pipeline([
-        ("projection", projection),
-        ("scaler", MinMaxScaler(feature_range=(0, 1)))
-    ])
+    return Pipeline([("projection", projection), ("scaler", MinMaxScaler(feature_range=(0, 1)))])
 
 
-def fit_pca_on_image_embeddings(limit: Optional[int] = None):
+def fit_pca_on_image_embeddings(limit: int | None = None):
     logger.info("Starting to retrieve embeddings from DB.")
     embeddings = retrieve_embeddings(limit=limit)
     logger.info("Done retrieving embeddings")
@@ -29,7 +25,7 @@ def fit_pca_on_image_embeddings(limit: Optional[int] = None):
 
     logger.info("Starting to fit PCA model.")
     pca_pipeline = build_projection_pipe(PCA(n_components=2, random_state=SEED))
-    pca_pipeline.fit(X) 
+    pca_pipeline.fit(X)
     coordinates = pca_pipeline.transform(X)
     logger.info("Done fitting PCA model!")
     return pca_pipeline, coordinates
@@ -51,9 +47,7 @@ def load_pca() -> PCA:
 
 def get_embedding_coordinates(pca: PCA, embeddings: np.ndarray) -> np.ndarray:
     coordinates = pca.transform(embeddings)
-    logger.info(
-        f"Transformed from original shape {embeddings.shape} -> {coordinates.shape}"
-    )
+    logger.info(f"Transformed from original shape {embeddings.shape} -> {coordinates.shape}")
     return coordinates
 
 
