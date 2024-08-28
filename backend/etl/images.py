@@ -26,7 +26,7 @@ async def download_img(client: httpx.AsyncClient, url: str) -> Image.Image:
     return Image.open(BytesIO(response.content))
 
 
-async def download_img_w_id(client: httpx.AsyncClient, id: int, url: str) -> tuple[int, Image.Image] | None:
+async def download_img_w_id(client: httpx.AsyncClient, img_id: int, url: str) -> tuple[int, Image.Image] | None:
     """
     Download an image from the given URL using the provided HTTP client.
 
@@ -43,11 +43,11 @@ async def download_img_w_id(client: httpx.AsyncClient, id: int, url: str) -> tup
     """
     try:
         image = await download_img(client, url)
-        return (id, image)
+        return (img_id, image)
     except httpx.HTTPStatusError:
-        logger.error(f"Error fetching image for art object {id}, skipping image")
+        logger.error(f"Error fetching image for art object {img_id}, skipping image")
     except Exception as e:
-        logger.error(f"Error processing image for art object {id}: {e}, skipping image")
+        logger.error(f"Error processing image for art object {img_id}: {e}, skipping image")
 
     return None
 
@@ -71,7 +71,7 @@ async def fetch_images_from_pairs(
     """
     images: list[tuple[int, Image.Image]] = []
 
-    tasks = [download_img_w_id(client, id, image_url) for id, image_url in id_url_pairs]
+    tasks = [download_img_w_id(client, img_id, image_url) for img_id, image_url in id_url_pairs]
     batch_images = await asyncio.gather(*tasks)
     images.extend([img for img in batch_images if img is not None])
 
