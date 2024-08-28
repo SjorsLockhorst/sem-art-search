@@ -58,7 +58,7 @@ async def run_embed_stage(image_count: int, batch_size: int):
             async def producer():
                 n = image_count // batch_size
                 for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
-                    logger.info(f"Starting to fetch {batch_size} new images. " f"Progress: ({batch_id}/{n})")
+                    logger.info(f"Starting to fetch {batch_size} new images. Progress: ({batch_id}/{n})")
                     ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
                     if ids_and_images:
                         await task_queue.put(ids_and_images)

@@ -1,24 +1,14 @@
 import asyncio
-import os
 
 from dotenv import load_dotenv
 from loguru import logger
 
+from config import Settings
 from db.crud import check_count_art_objects
 from etl.errors import ExtractError, MissingApiKeyError
 from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
 
 load_dotenv()
-
-
-def get_api_key(env_var: str) -> str:
-    """
-    Retrieve the API key from environment variables.
-    """
-    api_key = os.getenv(env_var)
-    if not api_key:
-        raise MissingApiKeyError("No API Key found in the env variable")
-    return api_key
 
 
 # During the MVP phase this is limited to a subset of 10,000 objects
@@ -38,15 +28,14 @@ async def run_extract_stage():
     Main function to retrieve and process art objects.
     """
     try:
-        api_key = get_api_key("RIJKSMUSEUM_API_KEY")
         current_count_art_objects = check_count_art_objects()
 
         # After MVP this can be increased or removed
-        if current_count_art_objects >= 10_000:
+        if current_count_art_objects >= 1_000:
             logger.info("Initial 10,000 objects already in the database. Stopping ETL during MVP phase")
             return
 
-        art_objects = await fetch_art_objects(api_key)
+        art_objects = await fetch_art_objects(Settings.rijksmuseum_api_key)
         logger.info(f"Extracted {len(art_objects)} art objects")
 
     except MissingApiKeyError as e:
