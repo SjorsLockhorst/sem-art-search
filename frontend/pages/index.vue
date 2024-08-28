@@ -6,6 +6,8 @@
             </h1>
             <h2 class="text-l mt-1">Search through Rijksmuseum artworks based on <span class="italic text-blue-800">meaning</span></h2>
         </div>
+        <!-- Position selectedArtwork absolutely in the bottom right corner of the page -->
+
         <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
             <canvas></canvas>
             <!-- Floating form in the top-left corner -->
@@ -38,6 +40,31 @@
                     <span v-if="!loading">Search</span>
                 </button>
             </form>
+
+        <div v-if="selectedArtwork" class="absolute top-32 left-8 shadow-md rounded-md bg-neutral-100 w-96 p-4">
+            <h3 class="font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
+            <h4>{{ selectedArtwork.long_title}} </h4>
+                <button :disabled="loading" 
+                    @click="loadImageResults(selectedArtwork.id)"
+                    class="text-white right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2 mt-2">
+                    <svg v-if="loading" 
+                        class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg" 
+                        fill="none" 
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" 
+                            cx="12" 
+                            cy="12" 
+                            r="10" 
+                            stroke="currentColor" 
+                            stroke-width="4"></circle>
+                        <path class="opacity-75" 
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span v-if="!loading">Search using this image</span>
+                </button>
+        </div>
             <!-- End of form -->
         </div>
     </div>
@@ -45,7 +72,7 @@
 
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import { Simple } from "~/utils/pixi-cull";
@@ -55,6 +82,8 @@ const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
 const topK = ref(5);
+const selectedArtworkIndex = ref<number | null>(null);
+const allArtworks = ref<Artwork[]>([]);
 
 let app: Application;
 let viewport: Viewport;
@@ -82,6 +111,7 @@ interface Artwork {
 }
 
 const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
+    loading.value = true;
     try {
         const response = await $fetch<QueryResponse>(
             `http://127.0.0.1:8000/image?id=${id}&top_k=${topK.value}`
@@ -90,10 +120,13 @@ const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
     } catch (error) {
         console.error("Error fetching artworks:", error);
         throw error;
+    } finally {
+        loading.value = false;
     }
 }
 
 const fetchArtworks = async (): Promise<QueryResponse> => {
+    loading.value = true
     try {
         const response: QueryResponse = await $fetch<QueryResponse>(
             `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
@@ -102,6 +135,8 @@ const fetchArtworks = async (): Promise<QueryResponse> => {
     } catch (error) {
         console.error("Error fetching artworks:", error);
         throw error;
+    } finally {
+        loading.value = false;
     }
 }
 
@@ -142,37 +177,46 @@ function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
 }
 
 const drawArtWorks = (artworks: Artwork[]) => {
-        const {averageX, averageY} = getAverage(artworks);
-        const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
-        viewport.animate( { position: middlePoint, scale: 0.15 });
+    const {averageX, averageY} = getAverage(artworks);
+    const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+    viewport.animate( { position: middlePoint, scale: 0.15 });
 
-        artworks.forEach(async (artwork) => {
-            const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
-            const sprite = Sprite.from(texture);
-            sprite.anchor.set(0.5)
-            sprite.x = artwork.x * WORLD_WIDTH;
-            sprite.y = artwork.y * WORLD_HEIGHT;
-            sprite.interactive = true;
+    artworks.forEach(async (artwork, index) => {
+        const texture = await Assets.load({src: artwork.image_url.replace("=s0", `=w${imgWidth}`), loadParser: "loadTextures"});
+        const sprite = Sprite.from(texture);
+        sprite.anchor.set(0.5)
+        sprite.x = artwork.x * WORLD_WIDTH;
+        sprite.y = artwork.y * WORLD_HEIGHT;
+        sprite.interactive = true;
 
-            sprite.on('pointerenter', () => {sprite.zIndex += 10000, animateScale(sprite, .2)});
-            sprite.on('pointerleave', () => {sprite.zIndex -= 10000, animateScale(sprite, -.2)});
-            sprite.on('mousedown', async () => {
-                const newArtworks = await fetchArtworksById(artwork.id);
-                drawArtWorks(newArtworks.art_objects_with_coords);
-            });
+        sprite.on('pointerenter', () => {
+            sprite.zIndex += 10000
+            animateScale(sprite, .2)
+            selectedArtworkIndex.value = index
+        });
+        sprite.on('pointerleave', () => {
+            sprite.zIndex -= 10000
+            animateScale(sprite, -.2)
+        });
+        sprite.on('mousedown', async () => {
+            selectedArtworkIndex.value = index
+        });
 
-            cull.add(sprite);
-            container.addChild(sprite);
-        })
+        cull.add(sprite);
+        container.addChild(sprite);
+    })
 
 
 
 }
 
+const loadImageResults = async (artwork_id: number) => {
+    const newArtworks = await fetchArtworksById(artwork_id);
+    drawArtWorks(newArtworks.art_objects_with_coords);
+}
+
 const fetchAndLoadQueryResults = async () => {
     try {
-        loading.value = true;
-
         const queryResponse = await fetchArtworks();
         const queryPoint = new Point(queryResponse.query_x * WORLD_WIDTH, queryResponse.query_y * WORLD_HEIGHT);
 
@@ -183,13 +227,12 @@ const fetchAndLoadQueryResults = async () => {
         }});
         text.position = queryPoint;
         container.addChild(text);
+        allArtworks.value = [...allArtworks.value, ...queryResponse.art_objects_with_coords]
         drawArtWorks(queryResponse.art_objects_with_coords);
 
     } catch (error) {
         console.error("Error loading images:", error);
-    } finally {
-        loading.value = false;
-    }
+    } 
 };
 
 const initializePixi = async () => {
@@ -231,7 +274,6 @@ const initializePixi = async () => {
         if (viewport.dirty) {
             cull.cull(viewport.getVisibleBounds(), true);
             viewport.dirty = false;
-            console.log(cull.stats())
         }
     });
     ticker.start();
@@ -241,8 +283,16 @@ const initializePixi = async () => {
 
 };
 
+const selectedArtwork = computed(() => {
+    if (selectedArtworkIndex.value != null) {
+        return allArtworks.value[selectedArtworkIndex.value]
+    }
+    return null
+})
+
 onMounted(() => {
     initializePixi();
 });
 
 </script>
+
