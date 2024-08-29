@@ -26,8 +26,103 @@ class Client:
         data = r.json()
         return data.get("artObjects", [])
 
-    # TODO: Implement this after MVP phase
-    def _get_objects_with_known_artist(self):
+    async def _get_limit(self, client: httpx.AsyncClient, url: str, params: httpx.QueryParams) -> int:
+        r = await client.get(url, params=params)
+
+        if r.status_code != 200:
+            logger.error(f"Error fetching limit: {r.status_code}")
+            return 0
+
+        data = r.json()
+        return data.get("count", 0)
+
+    async def _fetch_objects_by_artist(
+        self, client: httpx.AsyncClient, artist: str, batch_size: int = 5, ps: int = 100
+    ) -> list[ArtObjects]:
+        all_results = []
+        p = 1  # Page index
+
+        # Get the limit for this artist
+        limit = await self._get_limit(client, self.url, params=httpx.QueryParams({"principalMaker": artist}))
+
+        while limit > 0 and len(all_results) < limit:
+            tasks = []
+            for i in range(batch_size):
+                if len(all_results) + (i * ps) >= limit:
+                    break
+                logger.info(
+                    f"Fetching {ps} objects on page {p + i} for artist {artist} - total fetched so far: {len(all_results)}"
+                )
+                params = httpx.QueryParams({"ps": ps, "p": p + i, "principalMaker": artist})
+                tasks.append(self._get_art_object(client=client, url=self.url, params=params))
+
+            responses = await asyncio.gather(*tasks)
+            batch_art_objects = []
+            for results in responses:
+                for result in results:
+                    extracted_data = ArtObjects(
+                        original_id=result.get("id"),
+                        image_url=result.get("webImage", {}).get("url"),
+                        long_title=result.get("longTitle"),
+                        artist=result.get("principalOrFirstMaker"),
+                    )
+                    all_results.append(extracted_data)
+                    batch_art_objects.append(extracted_data)
+                logger.info(f"Total fetched so far for artist {artist}: {len(all_results)}")
+
+            save_objects_to_database(batch_art_objects)
+
+            p += batch_size
+            if len(all_results) >= limit:
+                break
+
+        return all_results
+
+    async def _fetch_objects_by_type(
+        self, client: httpx.AsyncClient, object_type: str, batch_size: int = 5, ps: int = 100
+    ) -> list[ArtObjects]:
+        all_results = []
+        p = 1  # Page index
+
+        # Get the limit for this object type
+        limit = await self._get_limit(
+            client, self.url, params=httpx.QueryParams({"type": object_type, "principalMaker": "anonymous"})
+        )
+
+        while limit > 0 and len(all_results) < limit:
+            tasks = []
+            for i in range(batch_size):
+                if len(all_results) + (i * ps) >= limit:
+                    break
+                logger.info(
+                    f"Fetching {ps} objects on page {p + i} for type {object_type} - total fetched so far: {len(all_results)}"
+                )
+                params = httpx.QueryParams({"ps": ps, "p": p + i, "type": object_type, "principalMaker": "anonymous"})
+                tasks.append(self._get_art_object(client=client, url=self.url, params=params))
+
+            responses = await asyncio.gather(*tasks)
+            batch_art_objects = []
+            for results in responses:
+                for result in results:
+                    extracted_data = ArtObjects(
+                        original_id=result.get("id"),
+                        image_url=result.get("webImage", {}).get("url"),
+                        long_title=result.get("longTitle"),
+                        artist=result.get("principalOrFirstMaker"),
+                    )
+                    all_results.append(extracted_data)
+                    batch_art_objects.append(extracted_data)
+                logger.info(f"Total fetched so far for type {object_type}: {len(all_results)}")
+
+            save_objects_to_database(batch_art_objects)
+
+            p += batch_size
+            if len(all_results) >= limit:
+                break
+
+        return all_results
+
+    async def _get_objects_with_known_artist(self):
         artists = [
             "George Hendrik Breitner",
             "Jan Luyken",
@@ -129,48 +224,12 @@ class Client:
             "Gustav Schnitzler",
             "William England",
         ]
-        all_results = []
-        ps = 100  # Number of results per page. Cannot exceed 100
 
-        for artist in artists:
-            total_retrieved = 0
-            # TODO: Retrieve the limit from the API
-            limit = 0
-            p = 1  # Page index
-            while total_retrieved < limit:
-                logger.info(
-                    f"Fetching {ps} objects on page {p} for artist {artist} - total fetched so far: {total_retrieved}"
-                )
-                params = {"ps": ps, "p": p, "principalMaker": artist}
-                response = httpx.get(self.url, params=params)
-                if response.status_code != 200:
-                    logger.error(f"Error fetching results for {artist}: {response.status_code}")
-                    break
+        async with httpx.AsyncClient() as client:
+            tasks = [self._fetch_objects_by_artist(client, artist) for artist in artists]
+            await asyncio.gather(*tasks)
 
-                data = response.json()
-                results = data.get("artObjects", [])
-
-                # Extract only the specified fields and construct an ArtObject
-                for result in results:
-                    extracted_data = ArtObjects(
-                        original_id=result.get("id"),
-                        image_url=result.get("webImage", {}).get("url"),
-                        long_title=result.get("longTitle"),
-                        artist=result.get("principalOrFirstMaker"),
-                    )
-                    all_results.append(extracted_data)
-
-                total_retrieved += len(results)
-
-                p += 1
-                if total_retrieved >= limit:
-                    break
-
-        return all_results
-
-    # TODO: Implement this after MVP phase
-    def _get_objects_with_unknown_artist(self):
-        artist = "anonymous"
+    async def _get_objects_with_unknown_artist(self):
         object_types = [
             "print",
             "photograph",
@@ -274,6 +333,10 @@ class Client:
             "mule (shoe)",
         ]
 
+        async with httpx.AsyncClient() as client:
+            tasks = [self._fetch_objects_by_type(client, object_type) for object_type in object_types]
+            await asyncio.gather(*tasks)
+
     async def get_initial_10_000_objects(self) -> list[ArtObjects]:
         """
         Function used to retrieve the first 10_000 objects from the Rijksmuseum API.
@@ -330,5 +393,7 @@ class Client:
         return all_results
 
     def get_all_objects_with_image(self):
-        objects_with_known_artist = self._get_objects_with_known_artist()
-        objects_with_unknown_artist = self._get_objects_with_unknown_artist()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
+            asyncio.gather(self._get_objects_with_known_artist(), self._get_objects_with_unknown_artist())
+        )
