@@ -12,7 +12,7 @@ load_dotenv()
 
 
 # During the MVP phase this is limited to a subset of 10,000 objects
-async def fetch_art_objects(api_key: str, language: DescriptionLanguages = DescriptionLanguages.NL):
+async def fetch_art_objects(api_key: str, language: DescriptionLanguages = DescriptionLanguages.EN):
     """
     Fetch the initial 10,000 art objects from the Rijksmuseum API.
     """
