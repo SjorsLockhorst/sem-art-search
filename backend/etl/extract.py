@@ -3,7 +3,7 @@ import asyncio
 from dotenv import load_dotenv
 from loguru import logger
 
-from config import Settings
+from config import settings
 from db.crud import check_count_art_objects
 from etl.errors import ExtractError, MissingApiKeyError
 from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
@@ -35,7 +35,7 @@ async def run_extract_stage():
             logger.info("Initial 10,000 objects already in the database. Stopping ETL during MVP phase")
             return
 
-        art_objects = await fetch_art_objects(Settings.rijksmuseum_api_key)
+        art_objects = await fetch_art_objects(settings.rijksmuseum_api_key)
         logger.info(f"Extracted {len(art_objects)} art objects")
 
     except MissingApiKeyError as e:
