@@ -65,6 +65,7 @@
                     </svg>
                     <span v-if="!loading">Search using this image</span>
                 </button>
+                <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" class="border-black border-2 p-8 bg-blue-700">View at Rijks</a>
         </div>
             <!-- End of form -->
         </div>
@@ -82,7 +83,7 @@ const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const topK = ref(15);
+const topK = ref(100);
 const selectedArtworkIndex = ref<number | null>(null);
 const allArtworks = ref<Artwork[]>([]);
 
@@ -91,6 +92,7 @@ let viewport: Viewport;
 let container: Container;
 let cull: Simple;
 let seenArtObjects: Set<number> = new Set<number>();
+let ticker: Ticker;
 
 const WORLD_WIDTH = 15000;
 const WORLD_HEIGHT = 15000;
@@ -156,14 +158,11 @@ function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
         averageY: total.y / count
     };
 };
-function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
-    const ticker = new Ticker();
+function animateScale(sprite: Sprite, factor: number, startScaleX: number, startScaleY: number, duration = 0.1) {
     const startTime = Date.now();
 
-    const startScaleX = sprite.scale.x;
-    const startScaleY = sprite.scale.y;
 
-    ticker.add(() => {
+    const scaleSprite = () => {
         const elapsed = (Date.now() - startTime) / 1000;
         const progress = Math.min(elapsed / duration, 1);
 
@@ -171,11 +170,11 @@ function animateScale(sprite: Sprite, factor: number, duration = 0.1) {
         sprite.scale.y = startScaleY + (startScaleY * (1 + factor) - startScaleY) * progress;
 
         if (progress === 1) {
-            ticker.stop();
+            Ticker.shared.remove(scaleSprite, sprite);
         }
-    });
+    }
 
-    ticker.start();
+    Ticker.shared.add(scaleSprite, sprite);
 }
 
 const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
@@ -195,17 +194,20 @@ const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
             sprite.y = artwork.y * WORLD_HEIGHT;
             sprite.interactive = true;
 
-            sprite.on('pointerenter', () => {
+            const startScaleX = sprite.scale.x;
+            const startScaleY = sprite.scale.y;
+
+            sprite.on('mouseover', () => {
                 sprite.zIndex += 10000
-                animateScale(sprite, .2)
-                selectedArtworkIndex.value = index + indexOffset
+                animateScale(sprite, .2, startScaleX, startScaleY)
             });
-            sprite.on('pointerleave', () => {
+            sprite.on('mouseleave', () => {
                 sprite.zIndex -= 10000
-                animateScale(sprite, -.2)
+                animateScale(sprite, -.2, startScaleX, startScaleY)
             });
-            sprite.on('mousedown', async () => {
+            sprite.on('pointerdown', () => {
                 selectedArtworkIndex.value = index + indexOffset
+                console.log("Your mouse is down")
             });
 
             cull.add(sprite);
