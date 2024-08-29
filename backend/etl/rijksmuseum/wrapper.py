@@ -16,6 +16,7 @@ class DescriptionLanguages(StrEnum):
 class Client:
     def __init__(self, language: DescriptionLanguages, api_key: str):
         self.url = f"https://www.rijksmuseum.nl/api/{language}/collection?key={api_key}&imgonly=True"
+        self.language = language
 
     async def _get_art_object(self, client: httpx.AsyncClient, url: str, params: httpx.QueryParams) -> list[object]:
         r = await client.get(url, params=params)
@@ -105,7 +106,7 @@ class Client:
             for results in responses:
                 for result in results:
                     extracted_data = ArtObjects(
-                        original_id=result.get("id"),
+                        original_id=result.get("id").replace(f"{self.language}-", ""),
                         image_url=result.get("webImage", {}).get("url"),
                         long_title=result.get("longTitle"),
                         artist=result.get("principalOrFirstMaker"),
