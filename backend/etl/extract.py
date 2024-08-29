@@ -1,14 +1,11 @@
 import asyncio
 
-from dotenv import load_dotenv
 from loguru import logger
 
 from config import settings
 from db.crud import check_count_art_objects
 from etl.errors import ExtractError, MissingApiKeyError
 from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
-
-load_dotenv()
 
 
 # During the MVP phase this is limited to a subset of 10,000 objects
