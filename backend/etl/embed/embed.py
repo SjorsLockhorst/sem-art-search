@@ -1,5 +1,8 @@
 import asyncio
 from itertools import batched
+import threading
+import queue
+import time
 
 import httpx
 import numpy as np
@@ -33,8 +36,7 @@ def embed_text(query: str) -> np.ndarray:
     embedder = TextEmbedder()
     return embedder(query)[0].cpu().detach().numpy()
 
-
-async def run_embed_stage(image_count: int, batch_size: int):
+def run_embed_stage(image_count: int, batch_size: int):
     """
     Main function to retrieve, embed, and store images in batches.
 
@@ -46,44 +48,92 @@ async def run_embed_stage(image_count: int, batch_size: int):
     """
     try:
         image_embedder = ImageEmbedder()
-        task_queue: asyncio.Queue = asyncio.Queue()
+        task_queue: queue.Queue = queue.Queue()
         id_url_pairs = retrieve_unembedded_image_art(image_count)
 
         if not id_url_pairs:
             logger.info("No unembedded images, exiting.")
             return
 
-        async with httpx.AsyncClient() as client:
+        # Event to signal termination
+        terminate_flag = threading.Event()
 
-            async def producer():
-                n = image_count // batch_size
-                for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
-                    logger.info(f"Starting to fetch {batch_size} new images. Progress: ({batch_id}/{n})")
-                    ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
-                    if ids_and_images:
-                        await task_queue.put(ids_and_images)
-                    else:
-                        logger.debug("No images retrived in batch, skipped entire batch")
+        def run_async_in_thread(coro):
+            """Function to run async coroutines synchronously within a thread."""
+            asyncio.run(coro)
 
-                    logger.info(f"Done fetching {batch_size} images. Batch id: {batch_id}")
+        def producer():
+            async def async_produce():
+                try:
+                    n = len(id_url_pairs) // batch_size
+                    async with httpx.AsyncClient() as client:
+                        for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
+                            logger.info(f"Starting to fetch {batch_size} new images. Progress: ({batch_id}/{n})")
 
-                # Sentinel value to indicate completion
-                await task_queue.put(None)
+                            if terminate_flag.is_set():
+                                logger.warning("Producer is exiting due to termination flag.")
+                                break
 
-            async def consumer():
-                embed_batch_id = 0
-                while True:
-                    ids_and_images = await task_queue.get()
+                            ids_and_images = await fetch_images_from_pairs(client, id_url_batch)  # Async call
+
+                            if ids_and_images:
+                                task_queue.put(ids_and_images)
+                            else:
+                                logger.debug("No images retrieved in batch, skipped entire batch")
+
+                            logger.info(f"Done fetching {batch_size} images. Batch id: {batch_id}")
+
+                except Exception as e:
+                    logger.error(f"Async producer encountered an error: {e}")
+                    terminate_flag.set()
+
+                # If everything is done and no errors occurred, signal completion
+                terminate_flag.set()
+
+            run_async_in_thread(async_produce())
+
+        def consumer():
+            embed_batch_id = 0
+
+            while not terminate_flag.is_set():
+                try:
+                    ids_and_images = task_queue.get(timeout=1)
+
                     if ids_and_images is None:
+                        logger.warning("Consumer received None, exiting.")
+                        terminate_flag.set()
                         break
 
                     logger.info(f"Starting to embed batch id: {embed_batch_id}")
+
                     ids_and_embeddings = get_images_embeddings(ids_and_images, image_embedder)
                     insert_batch_image_embeddings(ids_and_embeddings)
+
                     logger.info(f"Done embedding batch id: {embed_batch_id}")
                     embed_batch_id += 1
 
-            await asyncio.gather(producer(), consumer())
+                except queue.Empty:
+                    # End loop if flag is set and queue is empty
+                    if terminate_flag.is_set() and task_queue.empty():
+                        break
+
+                except Exception as e:
+                    logger.error(f"Consumer encountered an error: {e}")
+                    terminate_flag.set()
+                    break
+
+        producer_thread = threading.Thread(target=producer)
+        consumer_thread = threading.Thread(target=consumer)
+
+        # Start both threads
+        producer_thread.start()
+        consumer_thread.start()
+
+        # Join both threads
+        producer_thread.join()
+        consumer_thread.join()
+
+        logger.info("Processing completed.")
 
     except EmbeddingError as e:
         logger.error(f"Embedding Error: {e}")

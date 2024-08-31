@@ -83,7 +83,7 @@ const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
 const loading = ref(false);
-const topK = ref(100);
+const topK = ref(10);
 const selectedArtworkIndex = ref<number | null>(null);
 const allArtworks = ref<Artwork[]>([]);
 

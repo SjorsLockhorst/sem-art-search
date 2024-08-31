@@ -50,7 +50,8 @@ class ImageEmbedder(ArtEmbedder):
         """
         Process the input images to prepare them for embedding.
         """
-        return self.processor(images, return_tensors="pt")
+        tensor =  self.processor(images, return_tensors="pt")
+        return tensor
 
     def _embed(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -123,4 +124,4 @@ class TextEmbedder(ArtEmbedder):
 if __name__ == "__main__":
     # To be able to on demand pre download the models
     TextEmbedder()
-    ImageEmbedder()
+    print(ImageEmbedder().model)

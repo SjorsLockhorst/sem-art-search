@@ -2,7 +2,7 @@ import torch
 from sqlalchemy import func
 import numpy as np
 from typing import Optional
-from sqlmodel import Session, col, select
+from sqlmodel import Session, col, select, exists
 
 from db.models import ArtObjects, Embeddings, engine
 
@@ -63,9 +63,16 @@ def retrieve_unembedded_image_art(count: int):
     with Session(engine) as session:
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
+            .where( 
+                ~exists(
+                    select(Embeddings.art_object_id)
+                    .where(Embeddings.art_object_id == ArtObjects.id)
+                )
+            )
             .limit(count)
             .order_by(col(ArtObjects.id).asc())
-        )
+
+)
 
         result = session.exec(statement)
         art_objects = result.all()
