@@ -11,7 +11,7 @@ WORKDIR /app/backend
 COPY ./backend/pyproject.toml ./backend/poetry.lock* /app/backend/
 
 # Install project dependencies
-RUN poetry install --no-root
+RUN poetry install --no-root 
 
 # Copy the rest of the application code to the container, including the existing start.sh script
 COPY ./backend /app/backend
@@ -20,13 +20,4 @@ COPY ./backend /app/backend
 RUN poetry run python -m etl.embed.models
 
 # Copy HF model files into the app
-COPY ./backend/.huggingface ./backend/.huggingface
-
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
-
-# Ensure the start.sh script is executable
-RUN chmod +x /app/backend/start.sh
-
-# Use the start.sh script as the container's entry point
-CMD ["/app/backend/start.sh"]
+COPY ./backend/.huggingface /app/backend/.huggingface
