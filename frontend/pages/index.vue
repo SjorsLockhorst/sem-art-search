@@ -65,7 +65,7 @@
                     </svg>
                     <span v-if="!loading">Search using this image</span>
                 </button>
-                <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" class="border-black border-2 p-8 bg-blue-700">View at Rijks</a>
+                <!-- <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" class="border-black border-2 p-8 bg-blue-700">View at Rijks</a> -->
         </div>
             <!-- End of form -->
         </div>
