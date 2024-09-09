@@ -16,7 +16,13 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ./backend/backend.Dockerfile
+      dockerfile: ./Dockerfile
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 3G
 
     networks:
       - db_network

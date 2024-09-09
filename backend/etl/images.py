@@ -74,7 +74,7 @@ async def fetch_images_from_pairs(
     images: list[tuple[int, Image.Image]] = []
 
     tasks = [download_img_w_id(client, img_id, image_url.replace(
-        "=s0", "=w500")) for img_id, image_url in id_url_pairs]
+        "=s0", "=w1000")) for img_id, image_url in id_url_pairs]
     batch_images = await asyncio.gather(*tasks)
     images.extend([img for img in batch_images if img is not None])
 

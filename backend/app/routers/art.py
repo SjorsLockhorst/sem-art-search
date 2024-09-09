@@ -5,11 +5,11 @@ from fastapi.exceptions import HTTPException
 from db.crud import retrieve_best_image_match_w_embedding, retrieve_embedding_by_id
 from db.models import ArtObjectsWithCoord, ArtQueryWithCoordsResponse
 from etl.dim_reduc import get_embedding_coordinates, load_pca
-from etl.embed.models import TextEmbedder
+from etl.embed.models import get_text_embedder
 
 router = APIRouter()
 
-text_embedder = TextEmbedder(device="cpu")
+text_embedder = get_text_embedder(device="cpu")
 
 pca = load_pca()
 

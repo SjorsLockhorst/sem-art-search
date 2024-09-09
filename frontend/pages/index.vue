@@ -240,8 +240,10 @@ const fetchAndLoadQueryResults = async () => {
         }});
         text.position = queryPoint;
         container.addChild(text);
-        drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
-        allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+        if (newArtworks.art_objects_with_coords.length != 0) {
+            drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+            allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+        }
 
     } catch (error) {
         console.error("Error loading images:", error);

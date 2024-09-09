@@ -21,6 +21,8 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN poetry install --no-root --with etl
 
+RUN apt install nvtop htop -y
+
 COPY ./backend /app/backend
 
 CMD ["python", "-m", "etl.embed"]

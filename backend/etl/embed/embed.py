@@ -13,9 +13,10 @@ from PIL import Image
 from sqlalchemy import exc
 
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
-from etl.embed.models import ImageEmbedder, TextEmbedder
+from etl.embed.models import get_text_embedder, get_image_embedder, ImageEmbedder, TextEmbedder
 from etl.errors import EmbeddingError
 from etl.images import fetch_images_from_pairs
+
 
 def batched(iterable, n):
     """Return batches of size n from iterable."""
@@ -34,7 +35,8 @@ def get_images_embeddings(
     embeddings = image_embedder(list(imgs))
 
     if len(ids) != len(embeddings):
-        raise EmbeddingError(msg="Amount of IDs does not match amount of embeddings")
+        raise EmbeddingError(
+            msg="Amount of IDs does not match amount of embeddings")
 
     return list(zip(ids, embeddings, strict=False))
 
@@ -42,6 +44,7 @@ def get_images_embeddings(
 def embed_text(query: str) -> np.ndarray:
     embedder = TextEmbedder()
     return embedder(query)[0].cpu().detach().numpy()
+
 
 def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size: int):
     """
@@ -63,6 +66,7 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 
         # Event to signal termination
         terminate_flag = threading.Event()
+        producer_done = threading.Event()
 
         def run_async_in_thread(coro):
             """Function to run async coroutines synchronously within a thread."""
@@ -74,28 +78,33 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
                     n = len(id_url_pairs) // batch_size
                     async with httpx.AsyncClient() as client:
                         for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
-                            logger.info(f"Starting to fetch {batch_size} new images. Progress: ({batch_id}/{n})")
+                            logger.info(
+                                f"Starting to fetch {batch_size} new images. Progress: ({batch_id}/{n})")
 
                             if terminate_flag.is_set():
-                                logger.warning("Producer is exiting due to termination flag.")
+                                logger.warning(
+                                    "Producer is exiting due to termination flag.")
                                 break
 
-                            ids_and_images = await fetch_images_from_pairs(client, id_url_batch)  # Async call
+                            # Async call
+                            ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
 
                             if ids_and_images:
                                 task_queue.put(ids_and_images)
                             else:
-                                logger.debug("No images retrieved in batch, skipped entire batch")
+                                logger.debug(
+                                    "No images retrieved in batch, skipped entire batch")
 
-                            logger.info(f"Done fetching {batch_size} images. Batch id: {batch_id}")
+                            logger.info(
+                                f"Done fetching {batch_size} images. Batch id: {batch_id}")
 
                 except Exception as e:
                     logger.error(f"Async producer encountered an error: {e}")
                     terminate_flag.set()
 
-                # If everything is done and no errors occurred, signal completion
-                terminate_flag.set()
+                producer_done.set()
 
+                # If everything is done and no errors occurred, signal completion
             run_async_in_thread(async_produce())
 
         def consumer():
@@ -110,9 +119,11 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
                         terminate_flag.set()
                         break
 
-                    logger.info(f"Starting to embed batch id: {embed_batch_id}")
+                    logger.info(
+                        f"Starting to embed batch id: {embed_batch_id}")
 
-                    ids_and_embeddings = get_images_embeddings(ids_and_images, image_embedder)
+                    ids_and_embeddings = get_images_embeddings(
+                        ids_and_images, image_embedder)
                     insert_batch_image_embeddings(ids_and_embeddings)
 
                     logger.info(f"Done embedding batch id: {embed_batch_id}")
@@ -120,7 +131,7 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 
                 except queue.Empty:
                     # End loop if flag is set and queue is empty
-                    if terminate_flag.is_set() and task_queue.empty():
+                    if (terminate_flag.is_set() or producer_done.is_set()) and task_queue.empty():
                         break
 
                 except Exception as e:
@@ -154,9 +165,11 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run embedding stage')
-    parser.add_argument('--batch-size', type=int, default=8, help='Batch size for embedding')
-    parser.add_argument('--count', type=int, default=10000, help='Number of images to embed')
+    parser.add_argument('--batch-size', type=int, default=8,
+                        help='Batch size for embedding')
+    parser.add_argument('--count', type=int, default=10000,
+                        help='Number of images to embed')
     args = parser.parse_args()
-    image_embedder = ImageEmbedder()
-    run_embed_stage(image_embedder, image_count=args.count, batch_size=args.batch_size)
-
+    image_embedder = get_image_embedder()
+    run_embed_stage(image_embedder, image_count=args.count,
+                    batch_size=args.batch_size)
