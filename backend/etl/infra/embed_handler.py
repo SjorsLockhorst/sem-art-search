@@ -6,8 +6,8 @@ from etl.embed.models import ImageEmbedder
 
 image_embedder = ImageEmbedder()
 
-async def handler(job):
-    await run_embed_stage(image_embedder, image_count=10_000, batch_size=8)
+def handler(job):
+    run_embed_stage(image_embedder, image_count=10_000, batch_size=int(job["input"]["batch_size"]))
     return "Ran full embedding stage, now done!"
 
 runpod.serverless.start({
