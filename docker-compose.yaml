@@ -32,7 +32,7 @@ services:
     volumes:
       - ./backend:/app/backend
       - /app/backend/__pycache__
-      - ./backend/.huggingface:/app/backend/.huggingface
+      - ./.huggingface:/app/.huggingface
 
   frontend:
     build:

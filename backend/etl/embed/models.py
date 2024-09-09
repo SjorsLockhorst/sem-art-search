@@ -10,10 +10,11 @@ from transformers import (
     CLIPVisionModelWithProjection,
 )
 
-from etl.constants import ROOT_DIR
+from etl.constants import HF_CACHE_DIR
 from etl.embed.config import HF_BASE_URL
 from etl.errors import EmbeddingError
 
+logger.info(f"Using Huggingface cache dir {HF_CACHE_DIR}")
 
 class ArtEmbedder:
     def __init__(self, device: str | None = None):
@@ -40,8 +41,8 @@ class ImageEmbedder(ArtEmbedder):
         """
         super().__init__(device)
 
-        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url)
-        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url)
+        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
         self.model.to(self.device)
         logger.info(f"Using ImageEmbedder with device {self.device}")
 
@@ -84,8 +85,8 @@ class TextEmbedder(ArtEmbedder):
         Initialize the TextEmbedder with the given Hugging Face base URL.
         """
         super().__init__()
-        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url)
-        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url)
+        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
         self.model.to(self.device)
         logger.info(f"Using TextEmbedder with device {self.device}")
 
@@ -124,3 +125,4 @@ class TextEmbedder(ArtEmbedder):
 if __name__ == "__main__":
     # To be able to on demand pre download the models
     TextEmbedder()
+    ImageEmbedder()
