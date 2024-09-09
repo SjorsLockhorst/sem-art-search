@@ -21,6 +21,7 @@ joblib = "^1.4.2"
 matplotlib = "^3.9.0"
 pydantic-settings = "^2.4.0"
 torch = {version = "^2.4.1+cpu", source = "pytorch", optional = true}
+multilingual-clip = "^1.0.10"
 
 [tool.poetry.extras]
 torch = ["torch"]

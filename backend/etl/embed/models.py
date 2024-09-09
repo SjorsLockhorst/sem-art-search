@@ -7,14 +7,17 @@ from transformers import (
     CLIPImageProcessor,
     CLIPTextModelWithProjection,
     CLIPTokenizerFast,
+    AutoTokenizer,
     CLIPVisionModelWithProjection,
 )
+from multilingual_clip import pt_multilingual_clip
 
 from etl.constants import HF_CACHE_DIR
-from etl.embed.config import HF_BASE_URL
+from etl.embed.config import HF_IMG_BASE_URL, HF_TEXT_BASE_URL
 from etl.errors import EmbeddingError
 
 logger.info(f"Using Huggingface cache dir {HF_CACHE_DIR}")
+
 
 class ArtEmbedder:
     def __init__(self, device: str | None = None):
@@ -35,14 +38,16 @@ class ArtEmbedder:
 
 
 class ImageEmbedder(ArtEmbedder):
-    def __init__(self, device: str | None = None, hf_base_url: str = HF_BASE_URL):
+    def __init__(self, device: str | None = None, hf_base_url: str = HF_IMG_BASE_URL):
         """
         Initialize the ImageEmbedder with the given Hugging Face base URL.
         """
         super().__init__(device)
 
-        self.processor = CLIPImageProcessor.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
-        self.model = CLIPVisionModelWithProjection.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.processor = CLIPImageProcessor.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
+        self.model = CLIPVisionModelWithProjection.from_pretrained(
+            hf_base_url, cache_dir=HF_CACHE_DIR)
         self.model.to(self.device)
         logger.info(f"Using ImageEmbedder with device {self.device}")
 
@@ -50,7 +55,7 @@ class ImageEmbedder(ArtEmbedder):
         """
         Process the input images to prepare them for embedding.
         """
-        tensor =  self.processor(images, return_tensors="pt")
+        tensor = self.processor(images, return_tensors="pt")
         return tensor
 
     def _embed(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -72,7 +77,8 @@ class ImageEmbedder(ArtEmbedder):
             inputs.to(self.device)
             image_embeds = self._embed(inputs)
             proj_embeddings = self.norm(image_embeds)
-            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:
@@ -80,13 +86,23 @@ class ImageEmbedder(ArtEmbedder):
 
 
 class TextEmbedder(ArtEmbedder):
-    def __init__(self, device: str | None = None, hf_base_url: str = HF_BASE_URL):
+    def __init__(self, device: str | None = None, hf_base_url: str = HF_TEXT_BASE_URL):
         """
         Initialize the TextEmbedder with the given Hugging Face base URL.
         """
         super().__init__()
-        self.tokenizer = CLIPTokenizerFast.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
-        self.model = CLIPTextModelWithProjection.from_pretrained(hf_base_url, cache_dir=HF_CACHE_DIR)
+
+        if hf_base_url == "M-CLIP/XLM-Roberta-Large-Vit-B-32":
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                hf_base_url, cache_dir=HF_CACHE_DIR)
+            self.model = pt_multilingual_clip.MultilingualCLIP.from_pretrained(
+                HF_IMG_BASE_URL, cache_dir=HF_CACHE_DIR)
+        else:
+            self.tokenizer = CLIPTokenizerFast.from_pretrained(
+                hf_base_url, cache_dir=HF_CACHE_DIR)
+            self.model = CLIPTextModelWithProjection.from_pretrained(
+                hf_base_url, cache_dir=HF_CACHE_DIR)
+
         self.model.to(self.device)
         logger.info(f"Using TextEmbedder with device {self.device}")
 
@@ -115,7 +131,8 @@ class TextEmbedder(ArtEmbedder):
             inputs.to(self.device)
             text_embeds = self._embed(inputs)
             proj_embeddings = self.norm(text_embeds)
-            logger.info(f"Finished embedding texts in {time() - start_time} seconds.")
+            logger.info(
+                f"Finished embedding texts in {time() - start_time} seconds.")
             return proj_embeddings
 
         except Exception as e:

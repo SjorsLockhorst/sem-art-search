@@ -92,7 +92,6 @@ let viewport: Viewport;
 let container: Container;
 let cull: Simple;
 let seenArtObjects: Set<number> = new Set<number>();
-let ticker: Ticker;
 
 const WORLD_WIDTH = 15000;
 const WORLD_HEIGHT = 15000;
@@ -183,7 +182,6 @@ const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
     viewport.animate( { position: middlePoint, scale: 0.15 });
 
     artworks
-        .filter(artwork => !seenArtObjects.has(artwork.id))
         .forEach(async (artwork, index) => {
             seenArtObjects.add(artwork.id)
             artwork.image_url = artwork.image_url.replace("=s0", `=w${imgWidth}`)
@@ -215,16 +213,25 @@ const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
     })
 }
 
+const removeLoadedImages = (artworks: Artwork[]) => {
+    return artworks.filter((artwork: Artwork) => {return !seenArtObjects.has(artwork.id)})
+}
+
 const loadImageResults = async (artwork_id: number) => {
     const newArtworks = await fetchArtworksById(artwork_id);
-    drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
-    allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+    newArtworks.art_objects_with_coords = removeLoadedImages(newArtworks.art_objects_with_coords);
+    if (newArtworks.art_objects_with_coords.length != 0) {
+        drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+        allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+    }
 }
 
 const fetchAndLoadQueryResults = async () => {
     try {
-        const queryResponse = await fetchArtworks();
-        const queryPoint = new Point(queryResponse.query_x * WORLD_WIDTH, queryResponse.query_y * WORLD_HEIGHT);
+        const newArtworks = await fetchArtworks();
+        newArtworks.art_objects_with_coords = removeLoadedImages(newArtworks.art_objects_with_coords);
+
+        const queryPoint = new Point(newArtworks.query_x * WORLD_WIDTH, newArtworks.query_y * WORLD_HEIGHT);
 
         let text = new Text({text: artQuery.value, style: {
             fontFamily: "Arial",
@@ -233,8 +240,8 @@ const fetchAndLoadQueryResults = async () => {
         }});
         text.position = queryPoint;
         container.addChild(text);
-        drawArtWorks(queryResponse.art_objects_with_coords, allArtworks.value.length);
-        allArtworks.value = [...allArtworks.value, ...queryResponse.art_objects_with_coords]
+        drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+        allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
 
     } catch (error) {
         console.error("Error loading images:", error);
