@@ -3,6 +3,7 @@ import itertools
 import threading
 import queue
 import time
+import argparse
 
 import httpx
 import numpy as np
@@ -152,7 +153,10 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 
 
 if __name__ == "__main__":
-    count = 10000
-    batch_size = 8
+    parser = argparse.ArgumentParser(description='Run embedding stage')
+    parser.add_argument('--batch-size', type=int, default=8, help='Batch size for embedding')
+    parser.add_argument('--count', type=int, default=10000, help='Number of images to embed')
+    args = parser.parse_args()
     image_embedder = ImageEmbedder()
-    run_embed_stage(image_embedder, image_count=count, batch_size=batch_size)
+    run_embed_stage(image_embedder, image_count=args.count, batch_size=args.batch_size)
+
