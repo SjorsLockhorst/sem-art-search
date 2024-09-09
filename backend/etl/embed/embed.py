@@ -1,5 +1,5 @@
 import asyncio
-from itertools import batched
+import itertools
 import threading
 import queue
 import time
@@ -15,6 +15,12 @@ from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
 from etl.embed.models import ImageEmbedder, TextEmbedder
 from etl.errors import EmbeddingError
 from etl.images import fetch_images_from_pairs
+
+def batched(iterable, n):
+    """Return batches of size n from iterable."""
+    it = iter(iterable)
+    while batch := list(itertools.islice(it, n)):
+        yield batch
 
 
 def get_images_embeddings(
@@ -36,7 +42,7 @@ def embed_text(query: str) -> np.ndarray:
     embedder = TextEmbedder()
     return embedder(query)[0].cpu().detach().numpy()
 
-def run_embed_stage(image_count: int, batch_size: int):
+def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size: int):
     """
     Main function to retrieve, embed, and store images in batches.
 
@@ -47,7 +53,6 @@ def run_embed_stage(image_count: int, batch_size: int):
 
     """
     try:
-        image_embedder = ImageEmbedder()
         task_queue: queue.Queue = queue.Queue()
         id_url_pairs = retrieve_unembedded_image_art(image_count)
 
@@ -149,4 +154,5 @@ def run_embed_stage(image_count: int, batch_size: int):
 if __name__ == "__main__":
     count = 10000
     batch_size = 8
-    asyncio.run(run_embed_stage(image_count=count, batch_size=batch_size))
+    image_embedder = ImageEmbedder()
+    run_embed_stage(image_embedder, image_count=count, batch_size=batch_size)

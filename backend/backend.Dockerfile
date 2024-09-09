@@ -1,6 +1,6 @@
 FROM sjorslockhorst/sem-art-search
 
-RUN poetry install --no-root --with backend
+RUN poetry install --no-root --with backend --extras "torch"
 
 EXPOSE 8000
 
