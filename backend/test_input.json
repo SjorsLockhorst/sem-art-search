@@ -1,0 +1,7 @@
+{
+  "input": {
+    "count": 8,
+    "batch_size": 4,
+    "num_embed_threads": 2
+  }
+}
