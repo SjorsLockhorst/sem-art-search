@@ -1,8 +1,7 @@
+import numpy as np
 import torch
 from sqlalchemy import func
-import numpy as np
-from typing import Optional
-from sqlmodel import Session, col, select, exists
+from sqlmodel import Session, col, exists, select
 
 from db.models import ArtObjects, Embeddings, engine
 
@@ -35,6 +34,7 @@ def insert_batch_image_embeddings(
     ------
     ValueError
         When the list of embeddings is empty.
+
     """
     if not batch_embeddings:
         raise ValueError("The list of embeddings is empty")
@@ -63,7 +63,7 @@ def retrieve_unembedded_image_art(count: int):
     with Session(engine) as session:
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
-            .where( 
+            .where(
                 ~exists(
                     select(Embeddings.art_object_id)
                     .where(Embeddings.art_object_id == ArtObjects.id)
@@ -112,7 +112,7 @@ def retrieve_best_image_match_w_embedding(
     return list(joined_result)
 
 
-def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
+def retrieve_embeddings(limit: int | None = None) -> list[Embeddings]:
     with Session(engine) as session:
         query = select(Embeddings)
         if limit:
