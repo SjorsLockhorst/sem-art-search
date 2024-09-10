@@ -188,17 +188,34 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
         emb_save_args = [embedding_queue, terminate_flag, all_images_embedded_flag, all_embeddings_saved_flag]
 
         image_producer_thread = threading.Thread(target=image_producer, args=image_prod_args)
+
         image_consumer_embedding_producer_thread = threading.Thread(
             target=image_consumer_embedding_producer, args=emb_prod_args
         )
+
+        image_consumer_embedding_producer_thread1 = threading.Thread(
+            target=image_consumer_embedding_producer, args=emb_prod_args
+        )
+        image_consumer_embedding_producer_thread2 = threading.Thread(
+            target=image_consumer_embedding_producer, args=emb_prod_args
+        )
+
         embedding_consumer_insert_thread = threading.Thread(target=embedding_consumer_bulk_insert, args=emb_save_args)
 
         image_producer_thread.start()
+
         image_consumer_embedding_producer_thread.start()
+        image_consumer_embedding_producer_thread1.start()
+        image_consumer_embedding_producer_thread2.start()
+
         embedding_consumer_insert_thread.start()
 
         image_producer_thread.join()
+
         image_consumer_embedding_producer_thread.join()
+        image_consumer_embedding_producer_thread1.join()
+        image_consumer_embedding_producer_thread2.join()
+
         embedding_consumer_insert_thread.join()
 
         logger.info("Processing completed.")
