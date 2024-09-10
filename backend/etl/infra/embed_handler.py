@@ -1,5 +1,4 @@
 import runpod
-import asyncio
 
 from etl.embed.embed import run_embed_stage
 from etl.embed.models import ImageEmbedder
@@ -7,10 +6,17 @@ from etl.embed.models import ImageEmbedder
 image_embedder = ImageEmbedder()
 
 def handler(job):
-    run_embed_stage(image_embedder, image_count=10_000, batch_size=int(job["input"]["batch_size"]))
+    run_embed_stage(
+        image_embedder,
+        image_count=int(job["input"]["count"]),
+        batch_size=int(job["input"]["batch_size"]),
+        num_embed_threads=int(job["input"]["num_embed_threads"]),
+    )
     return "Ran full embedding stage, now done!"
 
-runpod.serverless.start({
+
+runpod.serverless.start(
+    {
         "handler": handler,
     }
 )
