@@ -3,8 +3,6 @@ import asyncio
 import itertools
 import queue
 import threading
-import time
-from multiprocessing import Queue
 
 import httpx
 import numpy as np
@@ -12,6 +10,7 @@ import torch
 from loguru import logger
 from PIL import Image
 from sqlalchemy import exc
+from torch.multiprocessing import Queue
 
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
 from etl.embed.models import ImageEmbedder, TextEmbedder, get_image_embedder
@@ -96,7 +95,6 @@ def image_consumer_embedding_producer(
 
     while not terminate_flag.is_set():
         try:
-            time.sleep(2)
             ids_and_images = image_queue.get(timeout=0.1)
 
             if ids_and_images is None:
@@ -159,10 +157,10 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
     """
     try:
         # Queue to store downloaded images into
-        image_queue: Queue = queue.Queue()
+        image_queue= Queue()
 
         # Queue to store extracted embeddings in
-        embedding_queue: Queue = queue.Queue()
+        embedding_queue = Queue()
 
         # Retrieve from the database which ArtObjects don't have an Embedding
         id_url_pairs = retrieve_unembedded_image_art(image_count)
