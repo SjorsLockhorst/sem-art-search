@@ -10,7 +10,6 @@ def handler(job):
         image_embedder,
         image_count=int(job["input"]["count"]),
         batch_size=int(job["input"]["batch_size"]),
-        num_embed_threads=int(job["input"]["num_embed_threads"]),
     )
     return "Ran full embedding stage, now done!"
 

@@ -152,7 +152,7 @@ def embedding_consumer_bulk_insert(
             raise
 
 
-def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size: int, num_embed_threads: int):
+def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size: int):
     """
     Main function to retrieve, embed, and store images in batches.
     """
@@ -201,21 +201,19 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
         image_producer_thread = threading.Thread(
             target=image_producer, args=image_prod_args)
 
-        embed_threads = [threading.Thread(target=image_consumer_embedding_producer, args=emb_prod_args) for _ in range(num_embed_threads)]
+        embed_thread = threading.Thread(target=image_consumer_embedding_producer, args=emb_prod_args)
 
         embedding_consumer_insert_thread = threading.Thread(target=embedding_consumer_bulk_insert, args=emb_save_args)
 
         image_producer_thread.start()
 
-        for embed_thread in embed_threads:
-            embed_thread.start()
+        embed_thread.start()
 
         embedding_consumer_insert_thread.start()
 
         image_producer_thread.join()
 
-        for embed_thread in embed_threads:
-            embed_thread.join()
+        embed_thread.join()
 
         embedding_consumer_insert_thread.join()
 
@@ -236,12 +234,11 @@ if __name__ == "__main__":
     start = time.time()
     parser = argparse.ArgumentParser(description="Run embedding stage")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for embedding")
-    parser.add_argument("--num-embed-threads", type=int, default=4, help="Amount of threads to use for embedding")
     parser.add_argument("--count", type=int, default=10000, help="Number of images to embed")
     args = parser.parse_args()
     image_embedder = get_image_embedder()
     run_embed_stage(
-        image_embedder, image_count=args.count, batch_size=args.batch_size, num_embed_threads=args.num_embed_threads
+        image_embedder, image_count=args.count, batch_size=args.batch_size
     )
     end = time.time()
     logger.info(f"Elapsed: {end - start}")
