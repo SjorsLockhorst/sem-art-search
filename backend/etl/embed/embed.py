@@ -3,6 +3,7 @@ import asyncio
 import itertools
 import queue
 import threading
+import time
 
 import httpx
 import numpy as np
@@ -95,7 +96,7 @@ def image_consumer_embedding_producer(
 
     while not terminate_flag.is_set():
         try:
-            ids_and_images = image_queue.get(timeout=0.1)
+            ids_and_images = image_queue.get(timeout=1)
 
             if ids_and_images is None:
                 logger.warning("Consumer received None, exiting.")
@@ -133,7 +134,7 @@ def embedding_consumer_bulk_insert(
 ):
     while not terminate_flag.is_set():
         try:
-            ids_and_embeddings = embedding_queue.get(timeout=0.1)
+            ids_and_embeddings = embedding_queue.get(timeout=1)
             insert_batch_image_embeddings(ids_and_embeddings)
             logger.info(
                 f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
@@ -232,6 +233,7 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 
 
 if __name__ == "__main__":
+    start = time.time()
     parser = argparse.ArgumentParser(description="Run embedding stage")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size for embedding")
     parser.add_argument("--num-embed-threads", type=int, default=4, help="Amount of threads to use for embedding")
@@ -241,3 +243,5 @@ if __name__ == "__main__":
     run_embed_stage(
         image_embedder, image_count=args.count, batch_size=args.batch_size, num_embed_threads=args.num_embed_threads
     )
+    end = time.time()
+    logger.info(f"Elapsed: {end - start}")
