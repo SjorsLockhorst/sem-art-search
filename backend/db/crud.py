@@ -8,8 +8,7 @@ from db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(
-            select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -41,16 +40,14 @@ def insert_batch_image_embeddings(
 
     with Session(engine) as session:
         embeddings = [
-            Embeddings(
-                art_object_id=art_object_id, image=embedding.detach().cpu().numpy()
-            )
+            Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
         session.commit()
 
 
-def retrieve_unembedded_image_art(count: int):
+def retrieve_unembedded_image_art(count: int, offset: int = 0):
     """
     Retrieve a number of ArtObjects from the database, based on the batch_size
 
@@ -63,16 +60,11 @@ def retrieve_unembedded_image_art(count: int):
     with Session(engine) as session:
         statement = (
             select(ArtObjects.id, ArtObjects.image_url)
-            .where(
-                ~exists(
-                    select(Embeddings.art_object_id)
-                    .where(Embeddings.art_object_id == ArtObjects.id)
-                )
-            )
+            .where(~exists(select(Embeddings.art_object_id).where(Embeddings.art_object_id == ArtObjects.id)))
             .limit(count)
             .order_by(col(ArtObjects.id).asc())
-
-)
+            .offset(offset)
+        )
 
         result = session.exec(statement)
         art_objects = result.all()
@@ -84,23 +76,16 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
     with Session(engine) as session:
         top_ids = session.exec(
             select(Embeddings.art_object_id)
-            .order_by(
-                Embeddings.image.cosine_distance(
-                    embedding.cpu().detach().numpy())
-            )
+            .order_by(Embeddings.image.cosine_distance(embedding.cpu().detach().numpy()))
             .limit(top_k)
         ).all()
 
-        art_objects = session.exec(
-            select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))
-        ).all()
+        art_objects = session.exec(select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))).all()
 
     return list(art_objects)
 
 
-def retrieve_best_image_match_w_embedding(
-    embedding: np.ndarray, top_k: int
-) -> list[tuple[ArtObjects, np.ndarray]]:
+def retrieve_best_image_match_w_embedding(embedding: np.ndarray, top_k: int) -> list[tuple[ArtObjects, np.ndarray]]:
     with Session(engine) as session:
         joined_result = session.exec(
             select(ArtObjects, Embeddings.image)
@@ -124,7 +109,4 @@ def retrieve_embeddings(limit: int | None = None) -> list[Embeddings]:
 
 def retrieve_embedding_by_id(id: int) -> Embeddings | None:
     with Session(engine) as session:
-        return session.exec(
-            select(Embeddings)
-            .where(Embeddings.art_object_id == id)
-        ).first()
+        return session.exec(select(Embeddings).where(Embeddings.art_object_id == id)).first()
