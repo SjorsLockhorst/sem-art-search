@@ -4,6 +4,7 @@ import itertools
 import queue
 import threading
 import time
+from queue import Queue
 
 import httpx
 import numpy as np
@@ -11,7 +12,6 @@ import torch
 from loguru import logger
 from PIL import Image
 from sqlalchemy import exc
-from torch.multiprocessing import Queue
 
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
 from etl.embed.models import ImageEmbedder, TextEmbedder, get_image_embedder
@@ -50,6 +50,7 @@ def embed_text(query: str) -> np.ndarray:
 def image_producer(id_url_pairs, batch_size, image_queue, terminate_flag, all_images_downloaded_flag):
     async def async_image_producer():
         try:
+            total_downloaded = 0
             n = len(id_url_pairs) // batch_size
             async with httpx.AsyncClient() as client:
                 for batch_id, id_url_batch in enumerate(batched(id_url_pairs, batch_size)):
@@ -67,6 +68,7 @@ def image_producer(id_url_pairs, batch_size, image_queue, terminate_flag, all_im
                     if ids_and_images:
                         for id_url_pair in ids_and_images:
                             image_queue.put(id_url_pair)
+                            total_downloaded += 1
                     else:
                         logger.debug(
                             "No images retrieved in batch, skipped entire batch")
@@ -80,6 +82,8 @@ def image_producer(id_url_pairs, batch_size, image_queue, terminate_flag, all_im
             raise
 
         all_images_downloaded_flag.set()
+        logger.info(
+            f"Done downloading images. Downloaded {total_downloaded} in total.")
 
     # If everything is done and no errors occurred, signal completion
     asyncio.run(async_image_producer())
@@ -95,58 +99,80 @@ def image_consumer_embedding_producer(
     all_images_embedded_flag: threading.Event,
 ):
     embed_batch_id = 0
+    total_embedded = 0
 
     while not terminate_flag.is_set():
         try:
             ids_and_images = []
 
+            # Continue fetching images from queue until we have a full batch
             while len(ids_and_images) < batch_size:
-                ids_and_images.append(image_queue.get(timeout=1))
+                try:
+                    # Check if all images are downloaded and queue is empty
+                    if all_images_downloaded_flag.is_set():
+                        # If images are done downloading, empty the queue in one step
+                        while not image_queue.empty():
+                            ids_and_images.append(image_queue.get(timeout=1))
 
-            if ids_and_images is None:
-                logger.warning("Consumer received None, exiting.")
-                terminate_flag.set()
-                break
+                        break  # Exit the while loop since we got everything left
 
-            logger.info(f"Starting to embed batch id: {embed_batch_id}")
+                    # Fetch image from the queue with a timeout of 1 second
+                    ids_and_images.append(image_queue.get(timeout=1))
 
-            ids_and_embeddings = get_images_embeddings(
-                ids_and_images, image_embedder)
-            embedding_queue.put(ids_and_embeddings)
+                except queue.Empty:
+                    # If downloading is complete and nothing is in the queue, finish
+                    if all_images_downloaded_flag.is_set() and image_queue.empty():
+                        logger.info(
+                            "No more images to embed. Processing the remaining ones.")
+                        break
 
-            logger.info(f"Done embedding batch id: {embed_batch_id}")
-            embed_batch_id += 1
+            # Proceed only if we have images to embed
+            if ids_and_images:
+                logger.info(
+                    f"Starting to embed batch id: {embed_batch_id} with {len(ids_and_images)} images")
 
-        except queue.Empty:
-            # End loop if flag is set and queue is empty
-            if all_images_downloaded_flag.is_set():
-                logger.info("Done embedding all images.")
-                all_images_embedded_flag.set()
-                break
-            if terminate_flag.is_set():
-                logger.error(
-                    "Image embedder thread terminated by terminate flag.")
-                break
+                # Embed the fetched images
+                ids_and_embeddings = get_images_embeddings(
+                    ids_and_images, image_embedder)
+                total_embedded += len(ids_and_embeddings)
+
+                # Place the embeddings in the embedding queue
+                embedding_queue.put(ids_and_embeddings)
+
+                logger.info(
+                    f"Done embedding batch id: {embed_batch_id} with {len(ids_and_embeddings)} embeddings")
+                embed_batch_id += 1
+            elif all_images_downloaded_flag.is_set() and image_queue.empty():
+                    logger.info(
+                        f"All images have been embedded. Total {total_embedded} images embedded.")
+                    all_images_embedded_flag.set()  # Signal that embedding is finished
+                    break
 
         except Exception as e:
             logger.error(f"Image embedder thread encountered an error: {e}")
             terminate_flag.set()
             raise
 
+    logger.info(
+        f"Image embedding process successfully terminated after embedding {total_embedded} images.")
+
 
 def embedding_consumer_bulk_insert(
     embedding_queue, terminate_flag, all_images_embedded_flag, all_embeddings_saved_flag
 ):
+    total_inserted = 0
     while not terminate_flag.is_set():
         try:
             ids_and_embeddings = embedding_queue.get(timeout=1)
             insert_batch_image_embeddings(ids_and_embeddings)
+            total_inserted += len(ids_and_embeddings)
             logger.info(
                 f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
 
         except queue.Empty:
             if all_images_embedded_flag.is_set():
-                logger.info("Done storing all embeddings in the SQL database")
+                logger.info(
+                    f"Done storing all embeddings in the SQL database. Stored a total of {total_inserted}.")
                 all_embeddings_saved_flag.set()
                 break
 
@@ -190,8 +216,8 @@ def run_embed_stage(
         # Once all images have been saved
         all_embeddings_saved_flag = threading.Event()
 
-        image_prod_args = [id_url_pairs, retrieval_batch_size, image_queue,
-                           terminate_flag, all_images_downloaded_flag]
+        image_prod_args = [id_url_pairs, retrieval_batch_size,
+                           image_queue, terminate_flag, all_images_downloaded_flag]
 
         emb_prod_args = [
             image_embedder,
