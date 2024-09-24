@@ -1,7 +1,9 @@
 {
   "input": {
-    "count": 10,
-    "embedding_batch_size": 8,
-    "retrieval_batch_size": 8
+    "total_amount": 100,
+    "amount_per_process": 50,
+    "num_processes": 2,
+    "retrieval_batch_size": 8,
+    "embedding_batch_size": 16
   }
 }

@@ -1,10 +1,10 @@
 FROM pytorch/pytorch:2.4.1-cuda12.4-cudnn9-runtime
 
-RUN apt update
+RUN apt update && apt install nvtop htop parallel -y --fix-missing
 
-RUN apt upgrade -y
 
 RUN pip install --upgrade pip
+
 
 # Install Poetry
 RUN pip install poetry
@@ -21,8 +21,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN poetry install --no-root --with etl
 
-RUN apt install nvtop htop -y
-
 COPY ./backend /app/backend
 
-CMD ["python", "-m", "etl.embed"]
+CMD ["./bulk_embed.sh", "1000", "100", "2"]

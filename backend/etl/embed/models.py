@@ -2,20 +2,19 @@ from time import time
 
 import torch
 from loguru import logger
+from multilingual_clip import pt_multilingual_clip
 from PIL import Image
 from transformers import (
+    AutoTokenizer,
     CLIPImageProcessor,
     CLIPTextModelWithProjection,
     CLIPTokenizerFast,
-    AutoTokenizer,
     CLIPVisionModelWithProjection,
 )
-from multilingual_clip import pt_multilingual_clip
 
 from etl.constants import HF_CACHE_DIR
 from etl.embed.config import HF_IMG_BASE_URL, HF_TEXT_BASE_URL
 from etl.errors import EmbeddingError
-
 
 
 class ArtEmbedder:
@@ -132,58 +131,10 @@ class TextEmbedder(ArtEmbedder):
             raise EmbeddingError(msg=str(e))
 
 
-class BilingualTextEmbedder(ArtEmbedder):
-    def __init__(self, device: str | None = None, hf_base_url: str = HF_TEXT_BASE_URL):
-        """
-        Initialize the TextEmbedder with the given Hugging Face base URL.
-        """
-
-        logger.info(f"Using Huggingface cache dir {HF_CACHE_DIR}")
-
-        logger.info("Init has been hit")
-        super().__init__()
-        logger.info("Post super init has been hit")
-
-        self.model = pt_multilingual_clip.MultilingualCLIP.from_pretrained(
-            hf_base_url, cache_dir=HF_CACHE_DIR)
-        logger.info("Post multilingual clip has been hit")
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            hf_base_url, cache_dir=HF_CACHE_DIR)
-
-        self.model.to(self.device)
-
-        logger.info(f"Using BilingualTextEmbedder with device {self.device}")
-
-    def __call__(self, texts: str | list[str]) -> torch.Tensor:
-        """
-        Call the ImageEmbedder with a list of images to get their embeddings.
-        """
-        try:
-            batch_size = 1 if isinstance(texts, str) else len(texts)
-            logger.info(f"Embedding {batch_size} texts")
-            start_time = time()
-
-            text_embeds = self.model.forward(texts, self.tokenizer)
-            proj_embeddings = self.norm(text_embeds)
-            logger.info(
-                f"Finished embedding texts in {time() - start_time} seconds.")
-            return proj_embeddings
-
-        except Exception as e:
-            raise EmbeddingError(msg=str(e))
 
 def get_image_embedder() -> ImageEmbedder:
     return ImageEmbedder()
 
-def get_text_embedder(device: str | None = None) -> BilingualTextEmbedder | TextEmbedder:
-    if HF_TEXT_BASE_URL == "M-CLIP/XLM-Roberta-Large-Vit-B-32":
-        logger.info("Using BilingualTextEmbedder")
-        return BilingualTextEmbedder(device=device)
-    return TextEmbedder(device=device)
-
-
-
 if __name__ == "__main__":
     # To be able to on demand pre download the models
-    BilingualTextEmbedder(device="cpu")(["test"])
-    # ImageEmbedder()
+    ImageEmbedder()
