@@ -65,7 +65,8 @@ def image_producer(id_url_pairs, batch_size, image_queue, terminate_flag, all_im
                     ids_and_images = await fetch_images_from_pairs(client, id_url_batch)
 
                     if ids_and_images:
-                        image_queue.put(ids_and_images)
+                        for id_url_pair in ids_and_images:
+                            image_queue.put(id_url_pair)
                     else:
                         logger.debug(
                             "No images retrieved in batch, skipped entire batch")
@@ -86,6 +87,7 @@ def image_producer(id_url_pairs, batch_size, image_queue, terminate_flag, all_im
 
 def image_consumer_embedding_producer(
     image_embedder: ImageEmbedder,
+    batch_size: int,
     image_queue: Queue,
     embedding_queue: Queue,
     terminate_flag: threading.Event,
@@ -96,7 +98,10 @@ def image_consumer_embedding_producer(
 
     while not terminate_flag.is_set():
         try:
-            ids_and_images = image_queue.get(timeout=1)
+            ids_and_images = []
+
+            while len(ids_and_images) < batch_size:
+                ids_and_images.append(image_queue.get(timeout=1))
 
             if ids_and_images is None:
                 logger.warning("Consumer received None, exiting.")
@@ -152,16 +157,18 @@ def embedding_consumer_bulk_insert(
             raise
 
 
-def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size: int):
+def run_embed_stage(
+    image_embedder: ImageEmbedder, image_count: int, retrieval_batch_size: int, embedding_batch_size: int
+):
     """
     Main function to retrieve, embed, and store images in batches.
     """
     try:
         # Queue to store downloaded images into
-        image_queue= Queue()
+        image_queue = Queue(maxsize=retrieval_batch_size * 100)
 
         # Queue to store extracted embeddings in
-        embedding_queue = Queue()
+        embedding_queue = Queue(maxsize=embedding_batch_size * 100)
 
         # Retrieve from the database which ArtObjects don't have an Embedding
         id_url_pairs = retrieve_unembedded_image_art(image_count)
@@ -183,11 +190,12 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
         # Once all images have been saved
         all_embeddings_saved_flag = threading.Event()
 
-        image_prod_args = [id_url_pairs, batch_size, image_queue,
-            terminate_flag, all_images_downloaded_flag]
+        image_prod_args = [id_url_pairs, retrieval_batch_size, image_queue,
+                           terminate_flag, all_images_downloaded_flag]
 
         emb_prod_args = [
             image_embedder,
+            embedding_batch_size,
             image_queue,
             embedding_queue,
             terminate_flag,
@@ -196,14 +204,16 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
         ]
 
         emb_save_args = [embedding_queue, terminate_flag,
-            all_images_embedded_flag, all_embeddings_saved_flag]
+                         all_images_embedded_flag, all_embeddings_saved_flag]
 
         image_producer_thread = threading.Thread(
             target=image_producer, args=image_prod_args)
 
-        embed_thread = threading.Thread(target=image_consumer_embedding_producer, args=emb_prod_args)
+        embed_thread = threading.Thread(
+            target=image_consumer_embedding_producer, args=emb_prod_args)
 
-        embedding_consumer_insert_thread = threading.Thread(target=embedding_consumer_bulk_insert, args=emb_save_args)
+        embedding_consumer_insert_thread = threading.Thread(
+            target=embedding_consumer_bulk_insert, args=emb_save_args)
 
         image_producer_thread.start()
 
@@ -233,12 +243,27 @@ def run_embed_stage(image_embedder: ImageEmbedder, image_count: int, batch_size:
 if __name__ == "__main__":
     start = time.time()
     parser = argparse.ArgumentParser(description="Run embedding stage")
-    parser.add_argument("--batch-size", type=int, default=8, help="Batch size for embedding")
-    parser.add_argument("--count", type=int, default=10000, help="Number of images to embed")
+
+    # Add a separate argument for retrieval batch size
+    parser.add_argument("--retrieval-batch-size", type=int,
+                        default=8, help="Batch size for retrieving images")
+
+    parser.add_argument("--embedding-batch-size", type=int,
+                        default=8, help="Batch size for embedding images")
+
+    parser.add_argument("--count", type=int, default=10000,
+                        help="Number of images to embed")
+
     args = parser.parse_args()
+
     image_embedder = get_image_embedder()
+
     run_embed_stage(
-        image_embedder, image_count=args.count, batch_size=args.batch_size
+        image_embedder,
+        image_count=args.count,
+        retrieval_batch_size=args.retrieval_batch_size,
+        embedding_batch_size=args.embedding_batch_size,
     )
+
     end = time.time()
     logger.info(f"Elapsed: {end - start}")
