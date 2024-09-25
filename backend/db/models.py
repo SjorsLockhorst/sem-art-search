@@ -1,7 +1,9 @@
+from contextlib import contextmanager
 from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, create_engine, text
+from sqlalchemy.orm import sessionmaker
 from sqlmodel import Field, SQLModel
 
 from config import settings
@@ -55,6 +57,16 @@ def create_db_and_tables():
 
     SQLModel.metadata.create_all(engine)
 
+@contextmanager
+def get_db_connection():
+    # Make sure the connection/engine is only created within the process, to avoid SSL issues
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    local_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    try:
+        session = local_session()
+        yield session
+    finally:
+        session.close()
 
 if __name__ == "__main__":
     create_db_and_tables()

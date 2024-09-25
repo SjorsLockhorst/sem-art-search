@@ -168,8 +168,11 @@ def embedding_consumer_bulk_insert(
             raise
 
 
-def run_embed_stage(
-    image_embedder: ImageEmbedder, image_count: int, retrieval_batch_size: int, embedding_batch_size: int, offset: int
+def _run_embed_stage(
+    id_url_pairs: tuple[int, str],
+    image_embedder: ImageEmbedder,
+    retrieval_batch_size: int,
+    embedding_batch_size: int,
 ):
     """
     Main function to retrieve, embed, and store images in batches.
@@ -180,9 +183,6 @@ def run_embed_stage(
 
         # Queue to store extracted embeddings in
         embedding_queue = Queue(maxsize=embedding_batch_size * 100)
-
-        # Retrieve from the database which ArtObjects don't have an Embedding
-        id_url_pairs = retrieve_unembedded_image_art(image_count, offset=offset)
 
         # If there's None, we exist
         if not id_url_pairs:
@@ -246,6 +246,16 @@ def run_embed_stage(
         raise
 
 
+def run_embed_stage(
+    image_count: int, retrieval_batch_size: int, embedding_batch_size: int, offset: int = 0
+):
+    image_embedder = get_image_embedder()
+
+    # Retrieve from the database which ArtObjects don't have an Embedding
+    id_url_pairs = retrieve_unembedded_image_art(image_count, offset=offset)
+    _run_embed_stage(id_url_pairs, image_embedder, retrieval_batch_size, embedding_batch_size)
+
+
 if __name__ == "__main__":
     start = time.time()
     parser = argparse.ArgumentParser(description="Run embedding stage")
@@ -268,7 +278,7 @@ if __name__ == "__main__":
         image_count=args.count,
         retrieval_batch_size=args.retrieval_batch_size,
         embedding_batch_size=args.embedding_batch_size,
-        offset=args.offset
+        offset=args.offset,
     )
 
     end = time.time()
