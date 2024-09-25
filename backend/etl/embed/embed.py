@@ -14,6 +14,7 @@ from PIL import Image
 from sqlalchemy import exc
 
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
+from db.models import get_db_connection
 from etl.embed.models import ImageEmbedder, TextEmbedder, get_image_embedder
 from etl.errors import EmbeddingError
 from etl.images import fetch_images_from_pairs
@@ -150,22 +151,23 @@ def embedding_consumer_bulk_insert(
 ):
     total_inserted = 0
     while not terminate_flag.is_set():
-        try:
-            ids_and_embeddings = embedding_queue.get(timeout=1)
-            insert_batch_image_embeddings(ids_and_embeddings)
-            total_inserted += len(ids_and_embeddings)
-            logger.info(f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
+        with get_db_connection() as conn:
+            try:
+                ids_and_embeddings = embedding_queue.get(timeout=1)
+                insert_batch_image_embeddings(conn, ids_and_embeddings)
+                total_inserted += len(ids_and_embeddings)
+                logger.info(f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
 
-        except queue.Empty:
-            if all_images_embedded_flag.is_set():
-                logger.info(f"Done storing all embeddings in the SQL database. Stored a total of {total_inserted}.")
-                all_embeddings_saved_flag.set()
-                break
+            except queue.Empty:
+                if all_images_embedded_flag.is_set():
+                    logger.info(f"Done storing all embeddings in the SQL database. Stored a total of {total_inserted}.")
+                    all_embeddings_saved_flag.set()
+                    break
 
-        except Exception as e:
-            logger.error(f"Embedder SQL inserter thread encountered an error: {e}")
-            terminate_flag.set()
-            raise
+            except Exception as e:
+                logger.error(f"Embedder SQL inserter thread encountered an error: {e}")
+                terminate_flag.set()
+                raise
 
 
 def _run_embed_stage(

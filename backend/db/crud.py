@@ -3,7 +3,7 @@ import torch
 from sqlalchemy import func
 from sqlmodel import Session, col, exists, select
 
-from db.models import ArtObjects, Embeddings, engine, get_db_connection
+from db.models import ArtObjects, Embeddings, engine
 
 
 def check_count_art_objects() -> int:
@@ -19,7 +19,7 @@ def save_objects_to_database(art_objects: list[ArtObjects]):
 
 
 def insert_batch_image_embeddings(
-    batch_embeddings: list[tuple[int, torch.Tensor]],
+        conn: Session, batch_embeddings: list[tuple[int, torch.Tensor]],
 ) -> None:
     """
     Insert a batch of embeddings.
@@ -38,7 +38,7 @@ def insert_batch_image_embeddings(
     if not batch_embeddings:
         raise ValueError("The list of embeddings is empty")
 
-    with get_db_connection() as session:
+    with conn as session:
         embeddings = [
             Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings

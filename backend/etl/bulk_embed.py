@@ -29,11 +29,17 @@ def embed_in_parallel(total_amount: int, num_processes: int, retrieval_batch_siz
 
         # Each process has 3 threads, so each process spawns 3 threads
         num_processes = os.cpu_count() // 3
-        logger.info(f"num_processes is passed -1, so using all logical cores {num_processes * 3}")
+        logger.info("num_processes is passed -1, so using all logical cores")
+    logger.info(f"total_amount: {total_amount}")
+    logger.info(f"num_processes: {num_processes}")
+    logger.info(f"retrieval_batch_size: {retrieval_batch_size}")
+    logger.info(f"embedding_batch_size: {embedding_batch_size}")
 
     # Each process will get an equal chunk of the output
     batch_size = total_amount // num_processes
     batches = list(batched(unembedded_art, batch_size))
+    logger.info(f"Amount of batches: {len(batches)}.")
+    logger.info(f"batch_size: {batch_size}.")
 
     process_args = [(batch, retrieval_batch_size, embedding_batch_size) for batch in batches]
 
