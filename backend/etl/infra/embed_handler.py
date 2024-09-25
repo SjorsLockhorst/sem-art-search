@@ -3,7 +3,7 @@ import runpod
 from etl.bulk_embed import embed_in_parallel
 from etl.embed.models import ImageEmbedder
 
-ImageEmbedder()  # Preload image embedder
+ImageEmbedder(device="cpu")  # Preload image embedder
 
 
 def handler(job):

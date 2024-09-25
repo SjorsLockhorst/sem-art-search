@@ -23,4 +23,4 @@ RUN poetry install --no-root --with etl
 
 COPY ./backend /app/backend
 
-CMD ["./bulk_embed.sh", "1000", "100", "2"]
+CMD ["poetry", "run", "python", "-m", "etl.bulk_embed", "1000", "-1", "8", "8"]
