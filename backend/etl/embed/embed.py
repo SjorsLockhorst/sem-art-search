@@ -4,6 +4,7 @@ import itertools
 import queue
 import threading
 import time
+from contextlib import contextmanager
 from queue import Queue
 
 import httpx
@@ -11,13 +12,26 @@ import numpy as np
 import torch
 from loguru import logger
 from PIL import Image
-from sqlalchemy import exc
+from sqlalchemy import create_engine, exc
+from sqlalchemy.orm import sessionmaker
 
+from config import settings
 from db.crud import insert_batch_image_embeddings, retrieve_unembedded_image_art
-from db.models import get_db_connection
 from etl.embed.models import ImageEmbedder, TextEmbedder, get_image_embedder
 from etl.errors import EmbeddingError
 from etl.images import fetch_images_from_pairs
+
+
+@contextmanager
+def get_db_connection():
+    # Make sure the connection/engine is only created within the process, to avoid SSL issues
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    local_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    try:
+        session = local_session()
+        yield session
+    finally:
+        session.close()
 
 
 def batched(iterable, n):
@@ -150,24 +164,24 @@ def embedding_consumer_bulk_insert(
     embedding_queue, terminate_flag, all_images_embedded_flag, all_embeddings_saved_flag
 ):
     total_inserted = 0
-    while not terminate_flag.is_set():
-        with get_db_connection() as conn:
-            try:
-                ids_and_embeddings = embedding_queue.get(timeout=1)
-                insert_batch_image_embeddings(conn, ids_and_embeddings)
-                total_inserted += len(ids_and_embeddings)
-                logger.info(f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
+    with get_db_connection() as conn:
+        while not terminate_flag.is_set():
+                try:
+                    ids_and_embeddings = embedding_queue.get(timeout=1)
+                    insert_batch_image_embeddings(conn, ids_and_embeddings)
+                    total_inserted += len(ids_and_embeddings)
+                    logger.info(f"Done inserting {len(ids_and_embeddings)} embeddings into SQL database.")
 
-            except queue.Empty:
-                if all_images_embedded_flag.is_set():
-                    logger.info(f"Done storing all embeddings in the SQL database. Stored a total of {total_inserted}.")
-                    all_embeddings_saved_flag.set()
-                    break
+                except queue.Empty:
+                    if all_images_embedded_flag.is_set():
+                        logger.info(f"Done storing all embeddings in the SQL database. Stored a total of {total_inserted}.")
+                        all_embeddings_saved_flag.set()
+                        break
 
-            except Exception as e:
-                logger.error(f"Embedder SQL inserter thread encountered an error: {e}")
-                terminate_flag.set()
-                raise
+                except Exception as e:
+                    logger.error(f"Embedder SQL inserter thread encountered an error: {e}")
+                    terminate_flag.set()
+                    raise
 
 
 def _run_embed_stage(
