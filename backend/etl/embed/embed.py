@@ -24,7 +24,7 @@ from etl.images import fetch_images_from_pairs
 
 @contextmanager
 def get_db_connection():
-    # Make sure the connection/engine is only created within the process, to avoid SSL issues
+    """Get's a unique database connection.'"""
     engine = create_engine(settings.database_url, pool_pre_ping=True)
     local_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     try:
@@ -164,7 +164,9 @@ def embedding_consumer_bulk_insert(
     embedding_queue, terminate_flag, all_images_embedded_flag, all_embeddings_saved_flag
 ):
     total_inserted = 0
+    # Make sure each embedding store thread has it's own unique connection to DB
     with get_db_connection() as conn:
+
         while not terminate_flag.is_set():
                 try:
                     ids_and_embeddings = embedding_queue.get(timeout=1)
