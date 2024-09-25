@@ -1,3 +1,4 @@
+import argparse
 import time
 from multiprocessing import Pool
 
@@ -18,25 +19,35 @@ def process_batch(args):
     # Now call the _run_embed_stage with the process's id_url_pairs and its own image_embedder
     _run_embed_stage(id_url_pairs, image_embedder, retrieval_batch_size, embedding_batch_size)
 
-if __name__ == "__main__":
+
+def embed_in_parallel(total_amount: int, num_processes: int, retrieval_batch_size: int, embedding_batch_size: int):
     logger.info("Starting batch processing")
     start = time.time()
+    unembedded_art = retrieve_unembedded_image_art(total_amount)
 
-    COUNT = 100  # Total number of images to embed
-    NUM_PROCS = 2  # Number of parallel processes to run
-
-    retrieval_batch_size = 8  # Size of image retrieval batch
-    embedding_batch_size = 8  # Size of image embedding batch
-
-    unembedded_art = retrieve_unembedded_image_art(COUNT)
-
-    batch_size = COUNT // NUM_PROCS
+    batch_size = total_amount // num_processes
     batches = list(batched(unembedded_art, batch_size))
 
     process_args = [(batch, retrieval_batch_size, embedding_batch_size) for batch in batches]
 
-    with Pool(NUM_PROCS) as pool:
+    with Pool(num_processes) as pool:
         pool.map(process_batch, process_args)
 
     end = time.time()
     logger.info(f"Total processing time: {end - start} seconds, to process {len(unembedded_art)} embeddings.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run embedding in parallel using multiprocessing")
+    parser.add_argument("total_amount", type=int, help="Total number of images to retrieve and embed")
+    parser.add_argument("num_processes", type=int, help="Number of parallel processes to run")
+    parser.add_argument("retrieval_batch_size", type=int, help="Batch size for retrieving images")
+    parser.add_argument("embedding_batch_size", type=int, help="Batch size for embedding images")
+    args = parser.parse_args()
+
+    total_amount = args.total_amount
+    num_processes = args.num_processes
+    retrieval_batch_size = args.retrieval_batch_size
+    embedding_batch_size = args.embedding_batch_size
+
+    embed_in_parallel(total_amount, num_processes, retrieval_batch_size, embedding_batch_size)
