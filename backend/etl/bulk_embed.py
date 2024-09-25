@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from multiprocessing import Pool
 
@@ -24,7 +25,13 @@ def embed_in_parallel(total_amount: int, num_processes: int, retrieval_batch_siz
     logger.info("Starting batch processing")
     start = time.time()
     unembedded_art = retrieve_unembedded_image_art(total_amount)
+    if num_processes == -1:
 
+        # Each process has 3 threads, so each process spawns 3 threads
+        num_processes = os.cpu_count() // 3
+        logger.info(f"num_processes is passed -1, so using all logical cores {num_processes * 3}")
+
+    # Each process will get an equal chunk of the output
     batch_size = total_amount // num_processes
     batches = list(batched(unembedded_art, batch_size))
 

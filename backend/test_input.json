@@ -1,7 +1,7 @@
 {
   "input": {
     "total_amount": 100,
-    "num_processes": 2,
+    "num_processes": -1,
     "retrieval_batch_size": 8,
     "embedding_batch_size": 16
   }
