@@ -1,7 +1,6 @@
+import numpy as np
 import torch
 from sqlalchemy import func
-import numpy as np
-from typing import Optional
 from sqlmodel import Session, col, select
 
 from db.models import ArtObjects, Embeddings, engine
@@ -34,15 +33,15 @@ def insert_batch_image_embeddings(
     ------
     ValueError
         When the list of embeddings is empty.
+
     """
     if not batch_embeddings:
-        raise ValueError("The list of embeddings is empty")
+        msg = "The list of embeddings is empty"
+        raise ValueError(msg)
 
     with Session(engine) as session:
         embeddings = [
-            Embeddings(
-                art_object_id=art_object_id, image=embedding.detach().cpu().numpy()
-            )
+            Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
@@ -60,38 +59,26 @@ def retrieve_unembedded_image_art(count: int):
 
     """
     with Session(engine) as session:
-        statement = (
-            select(ArtObjects.id, ArtObjects.image_url)
-            .limit(count)
-            .order_by(col(ArtObjects.id).asc())
-        )
+        statement = select(ArtObjects.id, ArtObjects.image_url).limit(count).order_by(col(ArtObjects.id).asc())
 
         result = session.exec(statement)
-        art_objects = result.all()
-
-        return art_objects
+        return result.all()
 
 
 def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtObjects]:
     with Session(engine) as session:
         top_ids = session.exec(
             select(Embeddings.art_object_id)
-            .order_by(
-                Embeddings.image.cosine_distance(embedding.cpu().detach().numpy())
-            )
+            .order_by(Embeddings.image.cosine_distance(embedding.cpu().detach().numpy()))
             .limit(top_k)
         ).all()
 
-        art_objects = session.exec(
-            select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))
-        ).all()
+        art_objects = session.exec(select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))).all()
 
     return list(art_objects)
 
 
-def retrieve_best_image_match_w_embedding(
-    embedding: np.ndarray, top_k: int
-) -> list[tuple[ArtObjects, np.ndarray]]:
+def retrieve_best_image_match_w_embedding(embedding: np.ndarray, top_k: int) -> list[tuple[ArtObjects, np.ndarray]]:
     with Session(engine) as session:
         joined_result = session.exec(
             select(ArtObjects, Embeddings.image)
@@ -103,7 +90,7 @@ def retrieve_best_image_match_w_embedding(
     return list(joined_result)
 
 
-def retrieve_embeddings(limit: Optional[int] = None) -> list[Embeddings]:
+def retrieve_embeddings(limit: int | None = None) -> list[Embeddings]:
     with Session(engine) as session:
         query = select(Embeddings)
         if limit:
