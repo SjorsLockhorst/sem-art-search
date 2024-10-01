@@ -8,7 +8,7 @@ from etl.extract import run_extract_stage
 
 async def main():
     logger.info("Extracting ArtObjects")
-    await run_extract_stage()
+    run_extract_stage()
     logger.info("Finished extracting ArtObjects")
     logger.info("Starting embedding of ArtObjects")
     # await run_embed_stage(image_count=10_000, batch_size=8)
