@@ -1,9 +1,54 @@
 services:
   database:
     image: pgvector/pgvector:pg16
-    ports: 
+    networks:
+      - db_network
+    container_name: db
+    ports:
       - 5432:5432
     environment:
-      - POSTGRES_PASSWORD=mysecretpassword
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    networks:
+      - db_network
+      - app_network
+    container_name: backend
+    ports:
+      - 8000:8000
+    depends_on:
+      - database
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/__pycache__
+      - ./backend/.huggingface:/app/backend/.huggingface
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    networks:
+      - app_network
+    container_name: frontend
+    ports:
+      - 3000:3000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+      - /app/frontend/.nuxt
+
+networks:
+  app_network:
+  db_network:
