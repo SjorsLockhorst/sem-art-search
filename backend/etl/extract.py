@@ -1,20 +1,11 @@
 from loguru import logger
 
-from config import settings
-from db.crud import check_count_art_objects
 from etl.errors import ExtractError
-from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
+from etl.rijksmuseum.main import fetch_art_objects
+from etl.sources import ArtSource
 
-
-def fetch_art_objects(api_key: str, language: DescriptionLanguages = DescriptionLanguages.EN):
-    """
-    Fetch the art objects from the Rijksmuseum API.
-    """
-    try:
-        client = Client(language=language, api_key=api_key)
-        return client.get_all_objects_with_image()
-    except Exception as e:
-        raise ExtractError(msg=str(e))
+# Mapping of sources and their fetch functions
+sources = {ArtSource.RIJKSMUSEUM: fetch_art_objects}
 
 
 def run_extract_stage():
@@ -22,11 +13,9 @@ def run_extract_stage():
     Main function to retrieve and process art objects.
     """
     try:
-        logger.info("Starting the full ETL process")
-        logger.info("Checking current count of art objects")
-        # TODO: Implement count check and maybe a limit to prevent fetching exisiting records
-        logger.info(f"Current count is {check_count_art_objects()}")
-        fetch_art_objects(settings.rijksmuseum_api_key)
+        for source, extract_func in sources.items():
+            logger.info(f"Starting extraction for {source}")
+            extract_func()
 
     except ExtractError as e:
         logger.error(f"Data Extraction Error: {e}")
@@ -34,7 +23,7 @@ def run_extract_stage():
 
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
-        raise ExtractError(str(e))
+        raise ExtractError(str(e)) from e
 
 
 if __name__ == "__main__":

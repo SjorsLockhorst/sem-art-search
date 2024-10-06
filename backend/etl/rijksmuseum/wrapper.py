@@ -37,7 +37,7 @@ class Client:
                 elem.tag = elem.tag[index + 1 :]
         return tree
 
-    def _fetch_objects_from_xml(self) -> None:
+    def _fetch_objects_from_xml_api(self) -> None:
         """Fetch art objects from the Rijksmuseum XML API and save them to the database."""
         verb = "ListRecords"
         set_param = "subject:PublicDomainImages"
@@ -52,7 +52,7 @@ class Client:
         batch_art_objects: list[ArtObjects] = []
         total_saved = 0
 
-        with httpx.Client(timeout=None) as client:
+        with httpx.Client() as client:
             while True:
                 try:
                     response = client.get(self.xml_url, params=params)
@@ -63,7 +63,7 @@ class Client:
 
                 # Parse the XML content
                 try:
-                    tree = lxml.etree.fromstring(response.content)
+                    tree = lxml.etree.fromstring(response.content)  # noqa: S320
                 except lxml.etree.XMLSyntaxError as e:
                     logger.error(f"Error parsing XML: {e}")
                     break
@@ -105,10 +105,12 @@ class Client:
 
                 save_objects_to_database(batch_art_objects)
                 total_saved += len(batch_art_objects)
+
                 logger.info(f"Total art objects saved: {total_saved}")
+
                 batch_art_objects = []
 
-                # Check for resumptionToken to fetch next set of records
+                # Check for resumptionToken to fetch next set of art objects
                 resumption_token = tree.xpath(".//resumptionToken/text()")
                 if resumption_token:
                     params = {"verb": "ListRecords", "resumptionToken": resumption_token[0]}
@@ -117,4 +119,4 @@ class Client:
 
     def get_all_objects_with_image(self) -> None:
         """Public method to fetch all art objects with images."""
-        self._fetch_objects_from_xml()
+        self._fetch_objects_from_xml_api()

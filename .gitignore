@@ -188,3 +188,6 @@ logs
 .env.*
 !.env.example
 .envrc
+
+# DB backup
+*.dump
