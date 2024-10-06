@@ -117,7 +117,7 @@ const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
     loading.value = true;
     try {
         const response = await $fetch<QueryResponse>(
-            `http://127.0.0.1:8000/image?id=${id}&top_k=${topK.value}`
+            `http://localhost:8000/image?id=${id}&top_k=${topK.value}`
         );
         return response;
     } catch (error) {
@@ -132,7 +132,7 @@ const fetchArtworks = async (): Promise<QueryResponse> => {
     loading.value = true
     try {
         const response: QueryResponse = await $fetch<QueryResponse>(
-            `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
+            `http://localhost:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
         );
         return response;
     } catch (error) {
