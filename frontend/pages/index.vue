@@ -113,6 +113,7 @@ interface Artwork {
     y: number;
 }
 
+// TODO: Fix the URLS below
 const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
     loading.value = true;
     try {

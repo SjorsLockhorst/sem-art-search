@@ -1,4 +1,5 @@
 # Use an official Python runtime as a parent image
+# TODO: Make sure that start.sh script actually gives back correct SIGNAL
 FROM python:3.12
 
 # Install Poetry

@@ -1,3 +1,4 @@
+# TODO: Make one docker compose for dev, one for prod
 services:
   database:
     image: pgvector/pgvector:pg16
