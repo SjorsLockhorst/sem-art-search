@@ -17,7 +17,5 @@ EXPOSE 3000
 # The environment variable for Nuxt to detect it's in production mode
 ENV NODE_ENV=production
 
-COPY ./frontend/.output .
-
 # Start Nitro server in production mode
 CMD ["node", ".output/server/index.mjs"]
