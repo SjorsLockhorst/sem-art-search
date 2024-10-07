@@ -1999,20 +1999,6 @@ files = [
 ]
 
 [[package]]
-name = "multilingual-clip"
-version = "1.0.10"
-description = "OpenAI CLIP text encoders for multiple languages!"
-optional = false
-python-versions = "*"
-files = [
-    {file = "multilingual_clip-1.0.10-py3-none-any.whl", hash = "sha256:b9acf95b8309c85a0db5e9c88c5f1b400687e08d72408c460731ae31e71dc73a"},
-    {file = "multilingual_clip-1.0.10.tar.gz", hash = "sha256:eea1ef03ce91735636ddcd4c887f6ea54a7e45f47d4a06deef1dbe2ce8dec19c"},
-]
-
-[package.dependencies]
-transformers = "*"
-
-[[package]]
 name = "networkx"
 version = "3.3"
 description = "Python package for creating and manipulating graphs and networks"
@@ -4322,4 +4308,4 @@ torch = ["torch"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ac444ca0eab3d4b2b3973802d7b6e7eea475d0a70f363bea32ccf1c39e08de9c"
+content-hash = "76c5c90af388ac6e5465d7d4b01631e6299cdf50f10880673d87e1a25de89590"

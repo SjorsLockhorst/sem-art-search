@@ -8,8 +8,7 @@ from db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(
-            select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -25,6 +24,11 @@ def insert_batch_image_embeddings(
 ) -> None:
     """
     Insert a batch of embeddings.
+
+    It is the only function in CRUD that gets a connection passed to it explicitly.
+    This has to do with parallalism. We want each process to create one connection,
+    which is reused for all SQL operations, rather than having many SQL connections
+    which could lead to errors in the SQL database.
 
     Parameters
     ----------
@@ -45,8 +49,7 @@ def insert_batch_image_embeddings(
 
     with conn as session:
         embeddings = [
-            Embeddings(art_object_id=art_object_id,
-                       image=embedding.detach().cpu().numpy())
+            Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
@@ -86,8 +89,7 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
             .limit(top_k)
         ).all()
 
-        art_objects = session.exec(select(ArtObjects).where(
-            col(ArtObjects.id).in_(top_ids))).all()
+        art_objects = session.exec(select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))).all()
 
     return list(art_objects)
 

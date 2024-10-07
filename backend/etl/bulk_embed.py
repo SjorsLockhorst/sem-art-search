@@ -9,26 +9,23 @@ from db.crud import retrieve_unembedded_image_art
 from etl.embed.embed import _run_embed_stage, batched
 from etl.embed.models import get_image_embedder
 
+NUM_THREADS_PER_PROC = 3
 
-# Wrapper function for each process, creates its own instance of ImageEmbedder
 def process_batch(args):
     id_url_pairs, retrieval_batch_size, embedding_batch_size = args
-
-    # Each process creates its own image_embedder
     image_embedder = get_image_embedder()
-
-    # Now call the _run_embed_stage with the process's id_url_pairs and its own image_embedder
     _run_embed_stage(id_url_pairs, image_embedder, retrieval_batch_size, embedding_batch_size)
 
 
 def embed_in_parallel(total_amount: int, num_processes: int, retrieval_batch_size: int, embedding_batch_size: int):
+    """Embed images in multiple processes at the same time."""
     logger.info("Starting batch processing")
+
     start = time.time()
     unembedded_art = retrieve_unembedded_image_art(total_amount)
     if num_processes == -1:
-
-        # Each process has 3 threads, so each process spawns 3 threads
-        num_processes = os.cpu_count() // 3
+        # Each process has 3 threads, so we want to spin up
+        num_processes = os.cpu_count() // NUM_THREADS_PER_PROC
         logger.info("num_processes is passed -1, so using all logical cores")
     logger.info(f"total_amount: {total_amount}")
     logger.info(f"num_processes: {num_processes}")

@@ -2,10 +2,8 @@ from time import time
 
 import torch
 from loguru import logger
-from multilingual_clip import pt_multilingual_clip
 from PIL import Image
 from transformers import (
-    AutoTokenizer,
     CLIPImageProcessor,
     CLIPTextModelWithProjection,
     CLIPTokenizerFast,
