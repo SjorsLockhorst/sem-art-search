@@ -11,6 +11,8 @@ COPY ./frontend .
 # Build your Nuxt application for production
 RUN npm run build 
 
+RUN ls -alh .output/ && ls -alh .output/server/
+
 # Expose port 3000 (default Nuxt.js port)
 EXPOSE 3000
 
