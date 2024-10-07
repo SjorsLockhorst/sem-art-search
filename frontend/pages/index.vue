@@ -78,6 +78,7 @@ import { ref, onMounted, computed } from "vue";
 import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import { Simple } from "~/utils/pixi-cull";
+const config = useRuntimeConfig()
 
 const pixiContainer = ref<HTMLDivElement | null>(null);
 const { width, height } = useElementSize(pixiContainer);
@@ -92,6 +93,7 @@ let viewport: Viewport;
 let container: Container;
 let cull: Simple;
 let seenArtObjects: Set<number> = new Set<number>();
+const apiBaseUrl = config.public.apiBase
 
 const WORLD_WIDTH = 15000;
 const WORLD_HEIGHT = 15000;
@@ -117,9 +119,8 @@ interface Artwork {
 const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
     loading.value = true;
     try {
-        const response = await $fetch<QueryResponse>(
-            `http://localhost:8000/image?id=${id}&top_k=${topK.value}`
-        );
+        const url = `${apiBaseUrl}/image?id=${id}&top_k=${topK.value}`
+        const response = await $fetch<QueryResponse>(url);
         return response;
     } catch (error) {
         console.error("Error fetching artworks:", error);
@@ -132,9 +133,8 @@ const fetchArtworksById = async(id: number): Promise<QueryResponse> => {
 const fetchArtworks = async (): Promise<QueryResponse> => {
     loading.value = true
     try {
-        const response: QueryResponse = await $fetch<QueryResponse>(
-            `http://localhost:8000/query?art_query=${artQuery.value}&top_k=${topK.value}`
-        );
+        const url = `${apiBaseUrl}/query?art_query=${artQuery.value}&top_k=${topK.value}`
+        const response: QueryResponse = await $fetch<QueryResponse>( url);
         return response;
     } catch (error) {
         console.error("Error fetching artworks:", error);

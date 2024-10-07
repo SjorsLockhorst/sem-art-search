@@ -1,0 +1,67 @@
+# TODO: Make one docker compose for dev, one for prod
+services:
+  database:
+    image: pgvector/pgvector:pg16
+    networks:
+      - db_network
+    container_name: db
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/prod.Dockerfile
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 3G
+    networks:
+      - db_network
+      - app_network
+    container_name: backend
+    ports:
+      - 8000:8000
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/__pycache__
+      - ./.huggingface:/app/.huggingface
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/prod.Dockerfile
+    networks:
+      - app_network
+    container_name: frontend
+    ports:
+      - 4000:3000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+      - /app/frontend/.nuxt
+
+networks:
+  app_network:
+  db_network:

@@ -22,7 +22,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./backend/dev.Dockerfile
     deploy:
       resources:
         limits:
@@ -49,7 +49,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./frontend/Dockerfile
+      dockerfile: ./frontend/dev.Dockerfile
     networks:
       - app_network
     container_name: frontend
@@ -61,6 +61,8 @@ services:
       - ./frontend:/app/frontend
       - /app/frontend/node_modules
       - /app/frontend/.nuxt
+    environment:
+      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
 
 networks:
   app_network:
