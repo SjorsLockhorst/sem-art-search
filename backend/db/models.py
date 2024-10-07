@@ -13,6 +13,7 @@ class ArtObjects(SQLModel, table=True):
     image_url: str
     long_title: str
     artist: str
+    source: str
 
 
 class ArtObjectsWithCoord(ArtObjects, table=False):
@@ -27,6 +28,7 @@ class ArtObjectsWithCoord(ArtObjects, table=False):
             image_url=art_object.image_url,
             long_title=art_object.long_title,
             artist=art_object.artist,
+            source=art_object.source,
             x=x,
             y=y,
         )

@@ -8,7 +8,8 @@ from db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(
+            select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -19,13 +20,16 @@ def save_objects_to_database(art_objects: list[ArtObjects]):
 
 
 def insert_batch_image_embeddings(
-        conn: Session, batch_embeddings: list[tuple[int, torch.Tensor]],
+    conn: Session,
+    batch_embeddings: list[tuple[int, torch.Tensor]],
 ) -> None:
     """
     Insert a batch of embeddings.
 
     Parameters
     ----------
+    conn: SQLmodel.Session
+        Connection to database.
     batch_embeddings: list[tuple[int, torch.Tensor]]
         List of tuples, each containing the ID of the corresponding ArtObject and its CLIP embedding
 
@@ -36,11 +40,13 @@ def insert_batch_image_embeddings(
 
     """
     if not batch_embeddings:
-        raise ValueError("The list of embeddings is empty")
+        msg = "The list of embeddings is empty"
+        raise ValueError(msg)
 
     with conn as session:
         embeddings = [
-            Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
+            Embeddings(art_object_id=art_object_id,
+                       image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
@@ -55,6 +61,8 @@ def retrieve_unembedded_image_art(count: int, offset: int = 0):
     ----------
     count : int
         The number of ArtObjects to be retrieved in one call
+    offset: int
+        The offset of ArtObjects to retrieve
 
     """
     with Session(engine) as session:
@@ -67,9 +75,7 @@ def retrieve_unembedded_image_art(count: int, offset: int = 0):
         )
 
         result = session.exec(statement)
-        art_objects = result.all()
-
-        return art_objects
+        return result.all()
 
 
 def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtObjects]:
@@ -80,7 +86,8 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
             .limit(top_k)
         ).all()
 
-        art_objects = session.exec(select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))).all()
+        art_objects = session.exec(select(ArtObjects).where(
+            col(ArtObjects.id).in_(top_ids))).all()
 
     return list(art_objects)
 
@@ -107,6 +114,6 @@ def retrieve_embeddings(limit: int | None = None) -> list[Embeddings]:
     return list(embeddings)
 
 
-def retrieve_embedding_by_id(id: int) -> Embeddings | None:
+def retrieve_embedding_by_id(art_object_id: int) -> Embeddings | None:
     with Session(engine) as session:
-        return session.exec(select(Embeddings).where(Embeddings.art_object_id == id)).first()
+        return session.exec(select(Embeddings).where(Embeddings.art_object_id == art_object_id)).first()
