@@ -57,10 +57,6 @@ services:
       - 4000:3000
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app/frontend
-      - /app/frontend/node_modules
-      - /app/frontend/.nuxt
 
 networks:
   app_network:

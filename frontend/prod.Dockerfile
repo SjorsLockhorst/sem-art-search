@@ -10,9 +10,6 @@ COPY ./frontend/package*.json ./
 # Install dependencies
 RUN npm install
 
-# Prune devDependencies to reduce image size
-RUN npm prune --production
-
 # Copy the rest of the application's source code
 COPY ./frontend ./
 
