@@ -54,7 +54,7 @@ services:
       - app_network
     container_name: frontend
     ports:
-      - 4000:3000
+      - 4000:4000
     depends_on:
       - backend
 

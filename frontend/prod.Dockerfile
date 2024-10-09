@@ -26,10 +26,11 @@ WORKDIR /app/frontend
 COPY --from=build /app/frontend/.output /app/frontend/.output
 
 # Expose port 3000 (default Nuxt.js port)
-EXPOSE 3000
+EXPOSE 4000
 
 # Set production environment variable
 ENV NODE_ENV=production
+ENV NITRO_PORT=4000
 
 # Start Nitro server in production mode
 CMD ["node", ".output/server/index.mjs"]
