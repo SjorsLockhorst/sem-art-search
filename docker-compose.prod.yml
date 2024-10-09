@@ -59,6 +59,8 @@ services:
       - backend
     environment:
       - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
+      - NODE_ENV=production
+      - NITRO_PORT=4000
 
 networks:
   app_network:
