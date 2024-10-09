@@ -57,8 +57,8 @@ services:
       - 4000:4000
     depends_on:
       - backend
-    environment:
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
+    # environment:
+    #   - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
 
 networks:
   app_network:
