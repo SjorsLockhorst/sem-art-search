@@ -43,7 +43,7 @@ services:
     volumes:
       - ./backend:/app/backend
       - /app/backend/__pycache__
-      - ./.huggingface:/app/.huggingface
+      - ../.huggingface:/app/.huggingface
 
   frontend:
     build:
