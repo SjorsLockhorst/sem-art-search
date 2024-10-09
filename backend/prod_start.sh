@@ -6,4 +6,4 @@
 poetry run python -m db.models
 
 # Run FastAPI with hot reloading
-exec poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 
+exec poetry run fastapi run app/main.py --proxy-headers --host 0.0.0.0 --port 8000 
