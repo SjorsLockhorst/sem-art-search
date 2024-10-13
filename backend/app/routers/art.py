@@ -57,7 +57,8 @@ def get_image_nearest_neighbors(id: int, top_k: int) -> ArtQueryWithCoordsRespon
         raise HTTPException(status_code=404, detail="No art objects found")
 
     # Need to reshape our embeddings since we only have 1 embedding
-    embedding = embeds.image.reshape(1, -1)
+
+    embedding = embeds.image
 
     art_objects_embeddings = retrieve_best_image_match_w_embedding(embedding, top_k)
 
@@ -65,7 +66,7 @@ def get_image_nearest_neighbors(id: int, top_k: int) -> ArtQueryWithCoordsRespon
         raise HTTPException(status_code=404, detail="No art objects found")
 
     # Function returns many, we passed only 1 so we only get back 1, at index 0
-    query_x, query_y = get_embedding_coordinates(pca, embedding)[0]
+    query_x, query_y = get_embedding_coordinates(pca, embedding.reshape(1, -1))[0]
 
     img_embeddings = []
     art_objects = []

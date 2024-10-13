@@ -4,7 +4,7 @@ services:
     image: pgvector/pgvector:pg16
     networks:
       - db_network
-    container_name: db
+    container_name: db-dev
     ports:
       - 5432:5432
     environment:
@@ -32,7 +32,7 @@ services:
     networks:
       - db_network
       - app_network
-    container_name: backend
+    container_name: backend-dev
     ports:
       - 8000:8000
     depends_on:
@@ -52,7 +52,7 @@ services:
       dockerfile: ./frontend/dev.Dockerfile
     networks:
       - app_network
-    container_name: frontend
+    container_name: frontend-dev
     ports:
       - 4000:3000
     depends_on:
@@ -61,8 +61,6 @@ services:
       - ./frontend:/app/frontend
       - /app/frontend/node_modules
       - /app/frontend/.nuxt
-    environment:
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
 
 networks:
   app_network:
