@@ -17,7 +17,7 @@ ENV NODE_ENV=production
 
 COPY ./frontend ./
 
-RUN bun --bun --smol run generate 
+RUN bun run --smol --bun generate 
 
 # ---- Step 2: Serve Phase ----
 FROM nginx:alpine AS serve
