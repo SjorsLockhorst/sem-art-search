@@ -21,3 +21,9 @@ FROM nginx:alpine AS serve
 
 # Copy the static site generated in the build step to the nginx html folder
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
+
+# Copy custom Nginx configuration file to the proper place
+COPY ./frontend/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 4000
+EXPOSE 4000
