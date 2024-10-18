@@ -12,11 +12,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ../postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 2s
-      timeout: 1s
-      retries: 5
 
   backend:
     build:
@@ -35,8 +30,7 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      database:
-        condition: service_healthy
+      - database
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
