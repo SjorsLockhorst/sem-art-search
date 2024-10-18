@@ -1,26 +1,29 @@
 # ---- Step 1: Build Phase ----
-FROM node:20-slim AS build
+FROM oven/bun:slim AS base
+WORKDIR /usr/src/app
 
-# Define the working directory inside the container
-WORKDIR /app/frontend
+FROM base AS install
 
-# Copy package.json and package-lock.json only (for caching purposes)
-COPY ./frontend/package*.json ./
+RUN mkdir -p /temp/prod
+COPY ./frontend/package.json ./frontend/bun.lockb /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
 
-# Install dependencies
-RUN npm install
+FROM base AS build
+COPY --from=install /temp/prod/node_modules node_modules
 
-# Copy the rest of the application's source code
+ARG NUXT_PUBLIC_API_BASE
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
+ENV NODE_ENV=production
+
 COPY ./frontend ./
 
-# Generate static files (SSG)
-RUN npm run generate  # This will generate static files under the `dist` folder
+RUN bun --bun run generate 
 
 # ---- Step 2: Serve Phase ----
 FROM nginx:alpine AS serve
 
 # Copy the static site generated in the build step to the nginx html folder
-COPY --from=build /app/frontend/dist /usr/share/nginx/html
+COPY --from=build /usr/src/app/dist /usr/share/nginx/html
 
 # Copy custom Nginx configuration file to the proper place
 COPY ./frontend/nginx.conf /etc/nginx/conf.d/default.conf

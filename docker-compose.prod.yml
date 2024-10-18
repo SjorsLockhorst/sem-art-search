@@ -37,6 +37,8 @@ services:
     build:
       context: .
       dockerfile: ./frontend/prod.Dockerfile
+      args:
+        - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
     networks:
       - app_network
     container_name: frontend
@@ -44,9 +46,6 @@ services:
       - 4000:4000
     depends_on:
       - backend
-    environment:
-      - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
-      - NODE_ENV=production
 
 networks:
   app_network:
