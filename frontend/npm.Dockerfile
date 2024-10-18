@@ -14,6 +14,9 @@ RUN npm install
 COPY ./frontend ./
 
 # Generate static files (SSG)
+
+ARG NUXT_PUBLIC_API_BASE
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 RUN npm run generate  # This will generate static files under the `dist` folder
 
 # ---- Step 2: Serve Phase ----
