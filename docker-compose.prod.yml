@@ -46,6 +46,8 @@ services:
       - 4000:4000
     depends_on:
       - backend
+    volumes:
+      - ./frontend-nginx.conf:/etc/nginx/nginx.conf
 
 networks:
   app_network:

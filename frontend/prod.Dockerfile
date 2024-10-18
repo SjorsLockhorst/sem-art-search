@@ -1,12 +1,12 @@
 # ---- Step 1: Build Phase ----
-FROM oven/bun:slim AS base
+FROM oven/bun:alpine AS base
 WORKDIR /usr/src/app
 
 FROM base AS install
 
 RUN mkdir -p /temp/prod
 COPY ./frontend/package.json ./frontend/bun.lockb /temp/prod/
-RUN cd /temp/prod && bun install --frozen-lockfile --production
+RUN cd /temp/prod && bun install --frozen-lockfile --production --verbose --concurrent-scripts 1
 
 FROM base AS build
 COPY --from=install /temp/prod/node_modules node_modules
@@ -17,16 +17,13 @@ ENV NODE_ENV=production
 
 COPY ./frontend ./
 
-RUN bun --bun run generate 
+RUN bun --bun --smol run generate 
 
 # ---- Step 2: Serve Phase ----
 FROM nginx:alpine AS serve
 
 # Copy the static site generated in the build step to the nginx html folder
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html
-
-# Copy custom Nginx configuration file to the proper place
-COPY ./frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 4000
 EXPOSE 4000
