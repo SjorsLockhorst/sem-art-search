@@ -23,7 +23,7 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
   - Popup that shows more info about the object, maybe link to Rijks
   - [x] Allow selecting that image as image for new query
 
-- [ ] Add backend route to allow finding the closest images to an existing Artobject
+- [x] Add backend route to allow finding the closest images to an existing Artobject
 
 - [x] Have backend return (x, y) of the user inputted query
 
@@ -31,11 +31,11 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
 
 ### ETL MVP
 
-- [ ] Implement ability to retrieve all images based on artist, for unkown artist based on type
+- [x] Implement ability to retrieve all images based on artist, for unkown artist based on type
 
   - Keep in mind the rate limit of the API
 
-- [ ] Make sure that it really works
+- [x] Make sure that it really works
 
 ### Deployment MVP
 
@@ -44,5 +44,5 @@ The image and image description data is retrieved using the [Rijksmuseum API](ht
 - [ ] Determine what a good place is to init the database on startup
   - Fastapi lifespan
   - Backend Dockerfile
-- [ ] Choose a cloud provider, give them your credit card
-- [ ] Dabble in SST
+- [x] Choose a cloud provider, give them your credit card
+- [x] Dabble in SST
