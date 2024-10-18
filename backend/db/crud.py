@@ -8,7 +8,8 @@ from db.models import ArtObjects, Embeddings, engine
 
 def check_count_art_objects() -> int:
     with Session(engine) as session:
-        count = session.exec(select(func.count()).select_from(ArtObjects)).first()
+        count = session.exec(
+            select(func.count()).select_from(ArtObjects)).first()
         return count if count else 0
 
 
@@ -49,7 +50,8 @@ def insert_batch_image_embeddings(
 
     with conn as session:
         embeddings = [
-            Embeddings(art_object_id=art_object_id, image=embedding.detach().cpu().numpy())
+            Embeddings(art_object_id=art_object_id,
+                       image=embedding.detach().cpu().numpy())
             for art_object_id, embedding in batch_embeddings
         ]
         session.bulk_save_objects(embeddings)
@@ -89,9 +91,26 @@ def retrieve_best_image_match(embedding: torch.Tensor, top_k: int) -> list[ArtOb
             .limit(top_k)
         ).all()
 
-        art_objects = session.exec(select(ArtObjects).where(col(ArtObjects.id).in_(top_ids))).all()
+        art_objects = session.exec(select(ArtObjects).where(
+            col(ArtObjects.id).in_(top_ids))).all()
 
     return list(art_objects)
+
+
+def retrieve_closest_to_artobject(art_object_id: int, top_k: int) -> list[tuple[ArtObjects, np.ndarray]]:
+    with Session(engine) as session:
+        subquery = (
+            select(Embeddings.image)
+            .where(Embeddings.art_object_id == art_object_id)
+            .scalar_subquery()
+        )
+        return session.exec(
+            select(ArtObjects, Embeddings.image)
+            .where(ArtObjects.id != art_object_id)
+            .order_by(Embeddings.image.cosine_distance(subquery))
+            .join(ArtObjects)
+            .limit(top_k)
+        ).all()
 
 
 def retrieve_best_image_match_w_embedding(embedding: np.ndarray, top_k: int) -> list[tuple[ArtObjects, np.ndarray]]:

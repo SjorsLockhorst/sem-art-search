@@ -2,7 +2,7 @@ import numpy as np
 from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
 
-from db.crud import retrieve_best_image_match_w_embedding, retrieve_embedding_by_id
+from db.crud import retrieve_best_image_match_w_embedding, retrieve_closest_to_artobject
 from db.models import ArtObjectsWithCoord, ArtQueryWithCoordsResponse
 from etl.dim_reduc import get_embedding_coordinates, load_pca
 from etl.embed.models import TextEmbedder
@@ -48,25 +48,14 @@ def get_query_nearest_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoord
 
 
 @router.get("/image", tags=["art"])
-def get_image_nearest_neighbors(id: int, top_k: int) -> ArtQueryWithCoordsResponse:
+def get_image_nearest_neighbors(id: int, top_k: int) -> list[ArtObjectsWithCoord]:
     """
     Get's nearest neighbor images based on given test `query`.
     """
-    embeds = retrieve_embedding_by_id(id)
-    if not embeds:
-        raise HTTPException(status_code=404, detail="No art objects found")
-
-    # Need to reshape our embeddings since we only have 1 embedding
-
-    embedding = embeds.image
-
-    art_objects_embeddings = retrieve_best_image_match_w_embedding(embedding, top_k)
+    art_objects_embeddings = retrieve_closest_to_artobject(id, top_k)
 
     if not art_objects_embeddings:
         raise HTTPException(status_code=404, detail="No art objects found")
-
-    # Function returns many, we passed only 1 so we only get back 1, at index 0
-    query_x, query_y = get_embedding_coordinates(pca, embedding.reshape(1, -1))[0]
 
     img_embeddings = []
     art_objects = []
@@ -85,4 +74,4 @@ def get_image_nearest_neighbors(id: int, top_k: int) -> ArtQueryWithCoordsRespon
         close_image = ArtObjectsWithCoord.from_art_object(art_object, x.item(), y.item())
         close_images.append(close_image)
 
-    return ArtQueryWithCoordsResponse(query_x=query_x, query_y=query_y, art_objects_with_coords=close_images)
+    return close_images
