@@ -13,24 +13,11 @@ RUN npm install
 # Copy the rest of the application's source code
 COPY ./frontend ./
 
-# Build the Nuxt application
-RUN npm run build
+# Generate static files (SSG)
+RUN npm run generate  # This will generate static files under the `dist` folder
 
 # ---- Step 2: Serve Phase ----
-FROM node:20-slim AS serve
+FROM nginx:alpine AS serve
 
-# Define the work directory inside the container for the final image
-WORKDIR /app/frontend
-
-# Copy the built output from the build phase
-COPY --from=build /app/frontend/.output /app/frontend/.output
-
-# Expose port 3000 (default Nuxt.js port)
-EXPOSE 4000
-
-# Set production environment variable
-ENV NODE_ENV=production
-ENV NITRO_PORT=4000
-
-# Start Nitro server in production mode
-CMD ["node", ".output/server/index.mjs"]
+# Copy the static site generated in the build step to the nginx html folder
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
