@@ -7,7 +7,6 @@ from db.models import ArtObjectsWithCoord, ArtQueryWithCoordsResponse
 from etl.dim_reduc import get_embedding_coordinates, load_pca
 from etl.embed.models import TextEmbedder
 
-# Added comment for test
 router = APIRouter()
 
 text_embedder = TextEmbedder(device="cpu")
