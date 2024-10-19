@@ -22,16 +22,9 @@ EXPOSE 8000
 # Ensure the start.sh script is executable
 RUN chmod +x /app/backend/prod_start.sh
 
-ARG RIJKSMUSEUM_API_KEY
-ARG DATABASE_URL
-
-ENV RIJKSMUSEUM_API_KEY=$RIJKSMUSEUM_API_KEY
-ENV DATABASE_URL=$DATABASE_URL
-
 COPY ../.*huggingface /app/.huggingface
 
-RUN poetry run python -m db.models
 RUN poetry run python -m etl.embed.get_text_model
 
 # Use the start.sh script as the container's entry point
-CMD ["poetry",  "run",  "fastapi",  "run",  "app/main.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/backend/prod_start.sh"]
