@@ -19,7 +19,7 @@ services:
       dockerfile: ./backend/prod.Dockerfile
     restart: always
     ports:
-      - 8000:8000
+      - 8000
     deploy:
       replicas: 3   
       update_config:
