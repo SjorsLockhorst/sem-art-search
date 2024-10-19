@@ -98,12 +98,11 @@ interface Artwork {
     y: number;
 }
 
-// TODO: Fix the URLS below
 const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
     loading.value = true;
     try {
         const url = `${apiBaseUrl}/image?id=${id}&top_k=${topK.value}`
-        const response = await $fetch<QueryResponse>(url);
+        const response = await $fetch<Artwork[]>(url);
         return response;
     } catch (error) {
         console.error("Error fetching artworks:", error);
