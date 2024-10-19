@@ -34,7 +34,7 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sem-art-backend-router.rule=Host(`sem-art-backend.lockhorst.dev`)"
+      - "traefik.http.routers.sem-art-backend-router.rule=Host(`semantic-art-api.lockhorst.dev`)"
       - "traefik.http.routers.sem-art-backend-router.entrypoints=websecure"
       - "traefik.http.routers.sem-art-backend-router.tls.certResolver=letsencrypt"
       - "traefik.http.services.sem-art-backend-service.loadbalancer.server.port=8000"
