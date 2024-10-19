@@ -63,12 +63,12 @@ services:
       - traefik.enable=true
       - traefik.http.routers.semantic-art-search-frontend-web.rule=Host(`art.lockhorst.dev`)
       - traefik.http.routers.semantic-art-search-frontend-web.entrypoints=web
-      - traefik.http.services.semantic-art-search-frontend-web.loadbalancer.server.port=8000
+      - traefik.http.services.semantic-art-search-frontend-web.loadbalancer.server.port=4000
       - traefik.http.routers.semantic-art-search-frontend-web.service=semantic-art-search-frontend-web
       - traefik.http.routers.semantic-art-search-frontend-web.middlewares=redirect-to-https@file
       - traefik.http.routers.semantic-art-search-frontend-websecure.rule=Host(`art.lockhorst.dev`)
       - traefik.http.routers.semantic-art-search-frontend-websecure.entrypoints=websecure
-      - traefik.http.services.semantic-art-search-frontend-websecure.loadbalancer.server.port=8000
+      - traefik.http.services.semantic-art-search-frontend-websecure.loadbalancer.server.port=4000
       - traefik.http.routers.semantic-art-search-frontend-websecure.service=semantic-art-search-frontend-websecure
       - traefik.http.routers.semantic-art-search-frontend-websecure.tls.certresolver=letsencryptend-service.loadbalancer.server.port=4000"
 
