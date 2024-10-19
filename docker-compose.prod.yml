@@ -1,11 +1,11 @@
 services:
   database:
     image: pgvector/pgvector:pg16
-    networks:
-      - db_network
-    container_name: db
+    restart: always
     ports:
       - 5432:5432
+    networks:
+      - dokploy-network
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -17,10 +17,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/prod.Dockerfile
-    networks:
-      - db_network
-      - app_network
-    container_name: backend
+    restart: always
     ports:
       - 8000:8000
     depends_on:
@@ -28,11 +25,19 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
+    networks:
+      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
       interval: 10s
       timeout: 3s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sem-art-backend-router.rule=Host(`sem-art-backend.lockhorst.dev`)"
+      - "traefik.http.routers.sem-art-backend-router.entrypoints=websecure"
+      - "traefik.http.routers.sem-art-backend-router.tls.certResolver=letsencrypt"
+      - "traefik.http.services.sem-art-backend-service.loadbalancer.server.port=8000"
 
   frontend:
     build:
@@ -40,16 +45,21 @@ services:
       dockerfile: ./frontend/npm.Dockerfile
       args:
         - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
-    networks:
-      - app_network
-    container_name: frontend
     ports:
       - 4000:4000
     depends_on:
       - backend
+    networks:
+      - dokploy-network
     volumes:
       - ./frontend-nginx.conf:/etc/nginx/nginx.conf
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sem-art-frontend-router.rule=Host(`art.lockhorst.dev`)"
+      - "traefik.http.routers.sem-art-frontend-router.entrypoints=websecure"
+      - "traefik.http.routers.sem-art-frontend-router.tls.certResolver=letsencrypt"
+      - "traefik.http.services.sem-art-frontend-service.loadbalancer.server.port=4000"
 
 networks:
-  app_network:
-  db_network:
+  dokploy-network:
+    external: true
