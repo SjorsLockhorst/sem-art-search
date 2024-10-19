@@ -48,7 +48,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: ./frontend/npm.Dockerfile
+      dockerfile: ./frontend/prod.Dockerfile
       args:
         - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
     ports:
