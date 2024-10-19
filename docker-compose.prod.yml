@@ -17,6 +17,9 @@ services:
     build:
       context: .
       dockerfile: ./backend/prod.Dockerfile
+      args:
+      - DATABASE_URL=${DATABASE_URL}
+      - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
     networks:
       - db_network
       - app_network
@@ -28,10 +31,6 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
-    volumes:
-      - ./backend:/app/backend
-      - /app/backend/__pycache__
-      - ../.huggingface:/app/.huggingface
 
   frontend:
     build:

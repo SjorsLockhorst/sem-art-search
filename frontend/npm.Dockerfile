@@ -19,6 +19,8 @@ ARG NUXT_PUBLIC_API_BASE
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 RUN npm run generate  # This will generate static files under the `dist` folder
 
+RUN echo "Checking if 'dist' folder was generated. See contents below:" && ls -al /app/frontend/dist
+
 # ---- Step 2: Serve Phase ----
 FROM nginx:alpine AS serve
 
