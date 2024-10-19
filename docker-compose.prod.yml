@@ -34,12 +34,10 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-
       - "traefik.http.routers.sem-art-backend-router-websecure.rule=Host(`semantic-art-api.lockhorst.dev`)"
       - "traefik.http.routers.sem-art-backend-router-websecure.entrypoints=websecure"
       - "traefik.http.routers.sem-art-backend-router-websecure.tls.certResolver=letsencrypt"
       - "traefik.http.services.sem-art-backend-service-websecure.loadbalancer.server.port=8000"
-
       - "traefik.http.routers.sem-art-backend-router-web.rule=Host(`semantic-art-api.lockhorst.dev`)"
       - "traefik.http.routers.sem-art-backend-router-web.entrypoints=web"
       - "traefik.http.services.sem-art-backend-service-web.middleware=redirect-to-https@file"
@@ -61,12 +59,10 @@ services:
       - ./frontend-nginx.conf:/etc/nginx/nginx.conf
     labels:
       - "traefik.enable=true"
-
       - "traefik.http.routers.sem-art-frontend-router-websecure.rule=Host(`art.lockhorst.dev`)"
       - "traefik.http.routers.sem-art-frontend-router-websecure.centrypoints=websecure"
       - "traefik.http.routers.sem-art-frontend-router-websecure.tls.certResolver=letsencrypt"
       - "traefik.http.services.sem-art-frontend-service-websecure.loadbalancer.server.port=4000"
-
       - "traefik.http.routers.sem-art-frontend-router-web.rule=Host(`art.lockhorst.dev`)"
       - "traefik.http.routers.sem-art-frontend-router-web.entrypoints=websecure"
       - "traefik.http.services.sem-art-frontend-service-web.middleware=redirect-to-https@file"
