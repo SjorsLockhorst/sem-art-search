@@ -21,8 +21,9 @@ services:
     ports:
       - 8000
     deploy:
+      mode: replicated
       replicas: 2   
-      endpont_mode: dnsrr
+      endpoint_mode: dnsrr
       update_config:
         parallelism: 1
         delay: 20s   
