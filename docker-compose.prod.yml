@@ -20,6 +20,14 @@ services:
     restart: always
     ports:
       - 8000:8000
+    deploy:
+      replicas: 3   
+      update_config:
+        parallelism: 1
+        delay: 10s   
+        order: start-first
+      restart_policy:
+        condition: on-failure
     depends_on:
       - database
     environment:
