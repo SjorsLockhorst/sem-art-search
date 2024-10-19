@@ -60,7 +60,7 @@ services:
       args:
         - NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
     ports:
-      - 4000:4000
+      - 4000
     depends_on:
       - backend
     networks:
