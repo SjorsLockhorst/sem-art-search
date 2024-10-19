@@ -42,18 +42,18 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.semantic-art-search-backend-web.rule=Host(`semantic-art-api.lockhorst.dev`)
-      - traefik.http.routers.semantic-art-search-backend-web.entrypoints=web
-      - traefik.http.services.semantic-art-search-backend-web.loadbalancer.server.port=8000
-      - traefik.http.routers.semantic-art-search-backend-web.service=semantic-art-search-backend-web
-      - traefik.http.routers.semantic-art-search-backend-web.middlewares=redirect-to-https@file
-      - traefik.http.routers.semantic-art-search-backend-websecure.rule=Host(`semantic-art-api.lockhorst.dev`)
-      - traefik.http.routers.semantic-art-search-backend-websecure.entrypoints=websecure
-      - traefik.http.services.semantic-art-search-backend-websecure.loadbalancer.server.port=8000
-      - traefik.http.routers.semantic-art-search-backend-websecure.service=semantic-art-search-backend-websecure
-      - traefik.http.routers.semantic-art-search-backend-websecure.tls.certresolver=letsencrypt
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.semantic-art-search-backend-web.rule=Host(`semantic-art-api.lockhorst.dev`)
+    #   - traefik.http.routers.semantic-art-search-backend-web.entrypoints=web
+    #   - traefik.http.services.semantic-art-search-backend-web.loadbalancer.server.port=8000
+    #   - traefik.http.routers.semantic-art-search-backend-web.service=semantic-art-search-backend-web
+    #   - traefik.http.routers.semantic-art-search-backend-web.middlewares=redirect-to-https@file
+    #   - traefik.http.routers.semantic-art-search-backend-websecure.rule=Host(`semantic-art-api.lockhorst.dev`)
+    #   - traefik.http.routers.semantic-art-search-backend-websecure.entrypoints=websecure
+    #   - traefik.http.services.semantic-art-search-backend-websecure.loadbalancer.server.port=8000
+    #   - traefik.http.routers.semantic-art-search-backend-websecure.service=semantic-art-search-backend-websecure
+    #   - traefik.http.routers.semantic-art-search-backend-websecure.tls.certresolver=letsencrypt
 
   frontend:
     build:
