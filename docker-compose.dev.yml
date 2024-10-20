@@ -1,9 +1,10 @@
+# TODO: Make one docker compose for dev, one for prod
 services:
   database:
     image: pgvector/pgvector:pg16
     networks:
       - db_network
-    container_name: db
+    container_name: db-dev
     ports:
       - 5432:5432
     environment:
@@ -12,36 +13,48 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
 
   backend:
     build:
       context: .
-      dockerfile: ./backend/Dockerfile
+      dockerfile: ./backend/dev.Dockerfile
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 3G
     networks:
       - db_network
       - app_network
-    container_name: backend
+    container_name: backend-dev
     ports:
       - 8000:8000
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - RIJKSMUSEUM_API_KEY=${RIJKSMUSEUM_API_KEY}
     volumes:
       - ./backend:/app/backend
       - /app/backend/__pycache__
-      - ./backend/.huggingface:/app/backend/.huggingface
+      - ./.huggingface:/app/.huggingface
 
   frontend:
     build:
       context: .
-      dockerfile: ./frontend/Dockerfile
+      dockerfile: ./frontend/dev.Dockerfile
     networks:
       - app_network
-    container_name: frontend
+    container_name: frontend-dev
     ports:
-      - 3000:3000
+      - 4000:3000
     depends_on:
       - backend
     volumes:

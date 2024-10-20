@@ -1,87 +1,91 @@
 <template>
-    <div class="p-4 min-h-screen">
-        <h1 class="text-4xl font-bold">
-            <span class="italic text-blue-800">Art</span>ificial Intelligence
-        </h1>
-        <div class="mt-6 w-full md:w-1/2 max-w-md mx-auto my-12">
-            <form @submit.prevent="loadImages" class="relative shadow-md rounded-md">
-                <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only ">Search</label>
-                <div class="relative">
-                    <input v-model="artQuery" type="search" id="default-search"
-                        class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
-                        placeholder="A woman in a black dress" required />
-                    <button :disabled="loading" type="submit"
-                        class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800  font-medium rounded-lg text-sm px-4 py-2 ">
-                        <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                            </circle>
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                            </path>
-                        </svg>
-                        <span v-if="!loading">Search</span>
-                    </button>
-                </div>
-            </form>
+    <div class="p-4 h-screen">
+        <div>
+            <h1 class="text-4xl font-bold">
+                <span class="italic text-blue-800">Art</span>ificial Intelligence
+            </h1>
+            <h2 class="text-l mt-1">Search through Rijksmuseum artworks based on <span
+                    class="italic text-blue-800">meaning</span></h2>
         </div>
-        <div class="flex justify-center  min-h-screen" v-if="mainImage">
-            <div class="container mx-auto px-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="flex justify-center ">
-                        <div v-if="loading && !mainImageLoaded"
-                            class="animate-pulse bg-gray-300 rounded-2xl w-full aspect-square"></div>
-                        <Transition name="fade" mode="out-in">
-                            <div v-show="mainImageLoaded">
-                                <NuxtImg v-show="mainImageLoaded" :src="mainImage?.image_url" :key="mainImageKey"
-                                    class="rounded-2xl max-w-full h-auto object-cover" @load="onMainImageLoad" />
-                                <div v-if="mainImageLoaded">
-                                    <p class="text-lg ">
-                                        {{ mainImage.long_title }} -
-                                        <span class="italic"> {{ mainImage.artist }}</span>
-                                    </p>
-                                </div>
-                            </div>
-                        </Transition>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div v-for="(relatedImage, index) in relatedImages" :key="relatedImageKeys[index]"
-                            class="flex justify-center items-center">
-                            <div v-if="loading && !relatedImagesLoaded[index]"
-                                class="animate-pulse bg-gray-300 rounded-2xl w-full aspect-square"></div>
-                            <Transition name="fade" mode="out-in">
-                                <div v-show="relatedImagesLoaded[index]">
-                                    <NuxtImg v-show="relatedImagesLoaded[index]" :src="relatedImage.image_url"
-                                        class="rounded-2xl max-w-full h-auto object-cover"
-                                        @load="onRelatedImageLoad(index)" :key="relatedImageKeys[index]" />
-                                    <div v-if="relatedImagesLoaded[index]">
-                                        <p class="text-lg ">
-                                            {{ relatedImage.long_title }} -
-                                            <span class="italic"> {{ relatedImage.artist }}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </Transition>
-                        </div>
-                    </div>
-                </div>
+        <!-- Position selectedArtwork absolutely in the bottom right corner of the page -->
+
+        <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
+            <canvas></canvas>
+            <!-- Floating form in the top-left corner -->
+            <form @submit.prevent="fetchAndLoadQueryResults"
+                class="absolute top-8 left-8 shadow-md rounded-md bg-white w-96">
+                <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only">Search</label>
+                <input v-model="artQuery" type="search" id="default-search"
+                    class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
+                    placeholder="A woman standing in a black dress" required />
+                <button :disabled="loading" type="submit"
+                    class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
+                    <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <span v-if="!loading">Search</span>
+                </button>
+            </form>
+
+            <div v-if="selectedArtwork" class="absolute top-32 left-8 shadow-md rounded-md bg-neutral-100 w-96 p-4">
+                <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title" class="max-h-[50vh]">
+                <h3 class="font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
+                <h4>{{ selectedArtwork.long_title }} </h4>
+                <button :disabled="loading" @click="loadImageResults(selectedArtwork.id)"
+                    class="text-white right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2 mt-2">
+                    <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <span v-if="!loading">Search using this image</span>
+                </button>
+                <!-- <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" class="border-black border-2 p-8 bg-blue-700">View at Rijks</a> -->
             </div>
         </div>
     </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue';
 
+<script setup lang="ts">
+import { ref, onMounted, computed } from "vue";
+import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
+import { Viewport } from "pixi-viewport";
+import { Simple } from "~/utils/pixi-cull";
+const config = useRuntimeConfig()
+
+const pixiContainer = ref<HTMLDivElement | null>(null);
+const { width, height } = useElementSize(pixiContainer);
 const artQuery = ref("");
-const previousQuery = ref("");
 const loading = ref(false);
-const mainImage = ref<Artwork | null>(null);
-const relatedImages = ref<Artwork[]>([]);
-const mainImageLoaded = ref(false);
-const relatedImagesLoaded = ref<boolean[]>([]);
-const mainImageKey = ref("");
-const relatedImageKeys = ref<string[]>([]);
+const topK = ref(10);
+const selectedArtworkIndex = ref<number | null>(null);
+const allArtworks = ref<Artwork[]>([]);
+
+let app: Application;
+let viewport: Viewport;
+let container: Container;
+let cull: Simple;
+let seenArtObjects: Set<number> = new Set<number>();
+const apiBaseUrl = config.public.apiBase
+
+const WORLD_WIDTH = 20000;
+const WORLD_HEIGHT = 20000;
+const imgWidth = 500;
+
+interface QueryResponse {
+    query_x: number;
+    query_y: number;
+    art_objects_with_coords: Artwork[]
+}
 
 interface Artwork {
     original_id: string;
@@ -93,76 +97,205 @@ interface Artwork {
     y: number;
 }
 
-const generateUniqueKey = () => {
-    return Math.random().toString(36).substring(2, 22);
-};
-
-const fetchArtworks = async (): Promise<Artwork[]> => {
+const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
+    loading.value = true;
     try {
-        const topK = 5;
-        const response: Artwork[] = await $fetch<Artwork[]>(
-            `http://127.0.0.1:8000/query?art_query=${artQuery.value}&top_k=${topK}`
-        );
+        const url = `${apiBaseUrl}/image?id=${id}&top_k=${topK.value}`
+        const response = await $fetch<Artwork[]>(url);
         return response;
     } catch (error) {
         console.error("Error fetching artworks:", error);
-        return [];
-    }
-};
-
-const loadImages = async () => {
-    if (previousQuery.value === artQuery.value) {
-        return;
-    }
-    loading.value = true;
-    relatedImagesLoaded.value = [];
-    try {
-        const artworks = await fetchArtworks();
-        if (artworks.length > 0) {
-            const [first, ...rest] = artworks;
-            mainImage.value = first;
-            relatedImages.value = rest;
-            relatedImagesLoaded.value = new Array(rest.length).fill(false);
-            mainImageLoaded.value = false;
-            mainImageKey.value = generateUniqueKey();
-            relatedImageKeys.value = rest.map(() => generateUniqueKey());
-        } else {
-            mainImage.value = null;
-            relatedImages.value = [];
-        }
-        previousQuery.value = artQuery.value
-    } catch (error) {
-        console.error("Error loading artworks:", error);
-        mainImage.value = null;
-        relatedImages.value = [];
-    }
-};
-
-const onMainImageLoad = () => {
-    mainImageLoaded.value = true;
-    checkAllImagesLoaded();
-};
-
-const onRelatedImageLoad = (index: number) => {
-    relatedImagesLoaded.value[index] = true;
-    checkAllImagesLoaded();
-};
-
-const checkAllImagesLoaded = () => {
-    if (mainImageLoaded.value && relatedImagesLoaded.value.every(loaded => loaded)) {
+        throw error;
+    } finally {
         loading.value = false;
     }
+}
+
+const fetchArtworks = async (): Promise<QueryResponse> => {
+    loading.value = true
+    try {
+        const url = `${apiBaseUrl}/query?art_query=${artQuery.value}&top_k=${topK.value}`
+        const response: QueryResponse = await $fetch<QueryResponse>(url);
+        return response;
+    } catch (error) {
+        console.error("Error fetching artworks:", error);
+        throw error;
+    } finally {
+        loading.value = false;
+    }
+}
+
+function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
+    const total = points.reduce((acc, point) => {
+        acc.x += point.x;
+        acc.y += point.y;
+        return acc;
+    }, { x: 0, y: 0 });
+
+    const count = points.length;
+
+    return {
+        averageX: total.x / count,
+        averageY: total.y / count
+    };
 };
+function animateScale(sprite: Sprite, factor: number, startScaleX: number, startScaleY: number, duration = 0.1) {
+    const startTime = Date.now();
+
+
+    const scaleSprite = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const progress = Math.min(elapsed / duration, 1);
+
+        sprite.scale.x = startScaleX + (startScaleX * (1 + factor) - startScaleX) * progress;
+        sprite.scale.y = startScaleY + (startScaleY * (1 + factor) - startScaleY) * progress;
+
+        if (progress === 1) {
+            Ticker.shared.remove(scaleSprite, sprite);
+        }
+    }
+
+    Ticker.shared.add(scaleSprite, sprite);
+}
+
+const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
+
+    artworks
+        .forEach(async (artwork, index) => {
+            seenArtObjects.add(artwork.id)
+            artwork.image_url = artwork.image_url.replace("=s0", `=w${imgWidth}`)
+            const texture = await Assets.load({ src: artwork.image_url, loadParser: "loadTextures" });
+            const sprite = Sprite.from(texture);
+            sprite.anchor.set(0.5)
+            sprite.x = artwork.x * WORLD_WIDTH;
+            sprite.y = artwork.y * WORLD_HEIGHT;
+            sprite.interactive = true;
+
+            const startScaleX = sprite.scale.x;
+            const startScaleY = sprite.scale.y;
+
+            sprite.on('mouseover', () => {
+                sprite.zIndex += 10000
+                animateScale(sprite, .2, startScaleX, startScaleY)
+            });
+            sprite.on('mouseleave', () => {
+                sprite.zIndex -= 10000
+                animateScale(sprite, -.2, startScaleX, startScaleY)
+            });
+            sprite.on('pointerdown', () => {
+                selectedArtworkIndex.value = index + indexOffset
+                console.log("Your mouse is down")
+            });
+
+            cull.add(sprite);
+            container.addChild(sprite);
+        })
+}
+
+const removeLoadedImages = (artworks: Artwork[]) => {
+    return artworks.filter((artwork: Artwork) => { return !seenArtObjects.has(artwork.id) })
+}
+
+const loadImageResults = async (artwork_id: number) => {
+    let newArtworks = await fetchArtworksById(artwork_id);
+    newArtworks = removeLoadedImages(newArtworks);
+    if (newArtworks.length != 0) {
+        drawArtWorks(newArtworks, allArtworks.value.length);
+        allArtworks.value = [...allArtworks.value, ...newArtworks]
+        const { averageX, averageY } = getAverage(newArtworks);
+        const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+        viewport.animate({ position: middlePoint, scale: 0.15 });
+    }
+}
+
+const fetchAndLoadQueryResults = async () => {
+    try {
+        const newArtworks = await fetchArtworks();
+        newArtworks.art_objects_with_coords = removeLoadedImages(newArtworks.art_objects_with_coords);
+
+        // const queryPoint = new Point(newArtworks.query_x * WORLD_WIDTH, newArtworks.query_y * WORLD_HEIGHT);
+
+        const { averageX, averageY } = getAverage(newArtworks.art_objects_with_coords);
+        const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+        viewport.animate({ position: middlePoint, scale: 0.15 });
+
+        let text = new Text({
+            text: artQuery.value, style: {
+                fontFamily: "Arial",
+                fontSize: 128
+
+            }
+        });
+        text.position = middlePoint;
+
+        container.addChild(text);
+        if (newArtworks.art_objects_with_coords.length != 0) {
+            drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+            allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+        }
+
+    } catch (error) {
+        console.error("Error loading images:", error);
+    }
+};
+
+const initializePixi = async () => {
+    if (!pixiContainer.value) return;
+
+    app = new Application();
+    await app.init({
+        canvas: document.querySelector("canvas") as HTMLCanvasElement,
+        width: width.value,
+        height: height.value,
+        background: "#fff",
+        antialias: true,
+        autoDensity: true,
+        resolution: 2,
+    });
+    globalThis.__PIXI_APP__ = app;
+
+    pixiContainer.value.appendChild(app.canvas);
+
+    viewport = new Viewport({
+        passiveWheel: false,
+        events: app.renderer.events,
+        worldWidth: WORLD_WIDTH,
+        worldHeight: WORLD_HEIGHT
+    })
+    // activate plugins
+    viewport.drag().pinch().wheel().decelerate()
+
+    app.stage.addChild(viewport);
+
+    cull = new Simple({ dirtyTest: true });
+    cull.addList(viewport.children);
+    cull.cull(viewport.getVisibleBounds());
+
+    const ticker = Ticker.shared;
+
+    // cull whenever the viewport moves
+    ticker.add(() => {
+        if (viewport.dirty) {
+            cull.cull(viewport.getVisibleBounds(), true);
+            viewport.dirty = false;
+        }
+    });
+    ticker.start();
+
+    container = new Container();
+    viewport.addChild(container);
+
+};
+
+const selectedArtwork = computed(() => {
+    if (selectedArtworkIndex.value != null) {
+        return allArtworks.value[selectedArtworkIndex.value]
+    }
+    return null
+})
+
+onMounted(() => {
+    initializePixi();
+});
+
 </script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-</style>

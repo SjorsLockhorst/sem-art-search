@@ -32,7 +32,7 @@ def fit_pca_on_image_embeddings(limit: int | None = None):
 
 
 def fit_pca_on_all():
-    logger.info("Starting to fit TSNE model on all image embeddings in DB.")
+    logger.info("Starting to fit PCA model on all image embeddings in DB.")
     pca, _ = fit_pca_on_image_embeddings()
     logger.info("Done fitting model.")
     logger.info(f"Saving model to {PCA_PATH}")

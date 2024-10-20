@@ -6,6 +6,7 @@ __pycache__/
 *-env/
 postgres-data/
 .huggingface/
+envoke.py
 
 # C extensions
 *.so
