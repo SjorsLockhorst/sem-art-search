@@ -57,9 +57,9 @@
 
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { Application, Sprite, Assets, Point, Ticker, Container, Text } from "pixi.js";
 import { Viewport } from "pixi-viewport";
+import { Application, Assets, Container, Point, Sprite, Text, Ticker } from "pixi.js";
+import { computed, onMounted, ref } from "vue";
 import { Simple } from "~/utils/pixi-cull";
 const config = useRuntimeConfig()
 
@@ -100,6 +100,7 @@ interface Artwork {
 
 const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
   loading.value = true;
+
   try {
     const url = `${apiBaseUrl}/image?idx=${id}&top_k=${topK.value}`
     const response = await $fetch<Artwork[]>(url);
@@ -114,6 +115,7 @@ const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
 
 const fetchArtworks = async (): Promise<QueryResponse> => {
   loading.value = true
+
   try {
     const url = `${apiBaseUrl}/query?art_query=${artQuery.value}&top_k=${topK.value}`
     const response: QueryResponse = await $fetch<QueryResponse>(url);
@@ -126,7 +128,7 @@ const fetchArtworks = async (): Promise<QueryResponse> => {
   }
 }
 
-function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
+const getAverage = (points: Artwork[]): { averageX: number, averageY: number } => {
   const total = points.reduce((acc, point) => {
     acc.x += point.x;
     acc.y += point.y;
@@ -140,27 +142,28 @@ function getAverage(points: Artwork[]): { averageX: number, averageY: number } {
     averageY: total.y / count
   };
 };
-function animateScale(sprite: Sprite, factor: number, startScaleX: number, startScaleY: number, duration = 0.1) {
-  const startTime = Date.now();
 
+const animateScale = (sprite: Sprite, targetScaleX: number, targetScaleY: number, duration = 0.1) => {
+  const startScaleX = sprite.scale.x;
+  const startScaleY = sprite.scale.y;
+  const startTime = Date.now();
 
   const scaleSprite = () => {
     const elapsed = (Date.now() - startTime) / 1000;
     const progress = Math.min(elapsed / duration, 1);
 
-    sprite.scale.x = startScaleX + (startScaleX * (1 + factor) - startScaleX) * progress;
-    sprite.scale.y = startScaleY + (startScaleY * (1 + factor) - startScaleY) * progress;
+    sprite.scale.x = startScaleX + (targetScaleX - startScaleX) * progress;
+    sprite.scale.y = startScaleY + (targetScaleY - startScaleY) * progress;
 
     if (progress === 1) {
       Ticker.shared.remove(scaleSprite, sprite);
     }
-  }
+  };
 
   Ticker.shared.add(scaleSprite, sprite);
-}
+};
 
 const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
-
   artworks
     .forEach(async (artwork, index) => {
       seenArtObjects.add(artwork.id)
@@ -176,16 +179,17 @@ const drawArtWorks = (artworks: Artwork[], indexOffset: number) => {
       const startScaleY = sprite.scale.y;
 
       sprite.on('mouseover', () => {
-        sprite.zIndex += 10000
-        animateScale(sprite, .2, startScaleX, startScaleY)
+        sprite.zIndex += 10000;
+        animateScale(sprite, startScaleX * 1.2, startScaleY * 1.2);
       });
+
       sprite.on('mouseleave', () => {
-        sprite.zIndex -= 10000
-        animateScale(sprite, -.2, startScaleX, startScaleY)
+        sprite.zIndex -= 10000;
+        animateScale(sprite, startScaleX, startScaleY);
       });
+
       sprite.on('pointerdown', () => {
         selectedArtworkIndex.value = index + indexOffset
-        console.log("Your mouse is down")
       });
 
       cull.add(sprite);
@@ -199,7 +203,9 @@ const removeLoadedImages = (artworks: Artwork[]) => {
 
 const loadImageResults = async (artwork_id: number) => {
   let newArtworks = await fetchArtworksById(artwork_id);
+
   newArtworks = removeLoadedImages(newArtworks);
+
   if (newArtworks.length != 0) {
     drawArtWorks(newArtworks, allArtworks.value.length);
     allArtworks.value = [...allArtworks.value, ...newArtworks]
@@ -227,6 +233,7 @@ const fetchAndLoadQueryResults = async () => {
 
       }
     });
+
     text.position = middlePoint;
 
     container.addChild(text);
