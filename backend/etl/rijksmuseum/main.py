@@ -1,10 +1,12 @@
-from config import settings
+from config import EtlSettings
 from etl.errors import ExtractError
 from etl.rijksmuseum.wrapper import Client, DescriptionLanguages
 
+etl_settings = EtlSettings()  # type: ignore  # noqa: PGH003
+
 
 def fetch_art_objects(
-    api_key: str = settings.rijksmuseum_api_key, language: DescriptionLanguages = DescriptionLanguages.EN
+    api_key: str = etl_settings.rijksmuseum_api_key, language: DescriptionLanguages = DescriptionLanguages.EN
 ):
     """
     Fetch the art objects from the Rijksmuseum API.
