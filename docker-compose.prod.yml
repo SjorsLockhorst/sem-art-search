@@ -20,5 +20,5 @@ networks:
     external: true
 
 volumes:
-  - semantic-art-search-sem-art-db-646c50-data
+  semantic-art-search-sem-art-db-646c50-data:
 
