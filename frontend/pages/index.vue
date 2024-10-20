@@ -47,7 +47,9 @@
           </svg>
           <span v-if="!loading">Search using this image</span>
         </button>
-        <!-- <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" class="border-black border-2 p-8 bg-blue-700">View at Rijks</a> -->
+        <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" target="_blank"
+          class="ml-4 text-white right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2 mt-2">View
+          at Rijks</a>
       </div>
     </div>
   </div>

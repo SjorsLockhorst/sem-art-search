@@ -192,3 +192,4 @@ logs
 
 # DB backup
 *.dump
+prod.sql
