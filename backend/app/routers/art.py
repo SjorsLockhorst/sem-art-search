@@ -49,11 +49,11 @@ def get_query_nearest_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoord
 
 
 @router.get("/image", tags=["art"])
-def get_image_nearest_neighbors(id: int, top_k: int) -> list[ArtObjectsWithCoord]:
+def get_image_nearest_neighbors(idx: int, top_k: int) -> list[ArtObjectsWithCoord]:
     """
     Get's nearest neighbor images based on given test `query`.
     """
-    art_objects_embeddings = retrieve_closest_to_artobject(id, top_k)
+    art_objects_embeddings = retrieve_closest_to_artobject(idx, top_k)
 
     if not art_objects_embeddings:
         raise HTTPException(status_code=404, detail="No art objects found")

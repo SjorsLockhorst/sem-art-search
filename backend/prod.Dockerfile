@@ -22,9 +22,5 @@ EXPOSE 8000
 # Ensure the start.sh script is executable
 RUN chmod +x /app/backend/prod_start.sh
 
-COPY ../.*huggingface /app/.huggingface
-
-RUN poetry run python -m etl.embed.get_text_model
-
 # Use the start.sh script as the container's entry point
 CMD ["/app/backend/prod_start.sh"]

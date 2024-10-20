@@ -1,13 +1,14 @@
 import runpod
-import asyncio
 
-from etl.extract import run_extract_stage
+from etl.main import main
+
 
 async def handler(job):
-    await run_extract_stage()
-    return "Done extracting from API"
+    main()
 
-runpod.serverless.start({
+
+runpod.serverless.start(
+    {
         "handler": handler,
     }
 )
