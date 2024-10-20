@@ -54,7 +54,7 @@ services:
       - app_network
     container_name: frontend-dev
     ports:
-      - 4000:3000
+      - 3000:3000
     depends_on:
       - backend
     volumes:
