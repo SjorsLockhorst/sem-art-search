@@ -98,6 +98,7 @@ const apiBaseUrl = config.public.apiBase
 const WORLD_WIDTH = 20000;
 const WORLD_HEIGHT = 20000;
 const imgWidth = 500;
+let querySet = new Set();
 
 interface QueryResponse {
   query_x: number;
@@ -232,37 +233,35 @@ const loadImageResults = async (artwork_id: number) => {
   }
 }
 
+
+
 const fetchAndLoadQueryResults = async () => {
   try {
-    const newArtworks = await fetchArtworks();
-    newArtworks.art_objects_with_coords = removeLoadedImages(newArtworks.art_objects_with_coords);
-
-    // const queryPoint = new Point(newArtworks.query_x * WORLD_WIDTH, newArtworks.query_y * WORLD_HEIGHT);
-
-    const { averageX, averageY } = getAverage(newArtworks.art_objects_with_coords);
-    const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
-    viewport.animate({ position: middlePoint, scale: 0.15 });
-
-    let text = new Text({
-      text: artQuery.value, style: {
-        fontFamily: "Arial",
-        fontSize: 128
-
-      }
-    });
-
-    text.position = middlePoint;
-
-    container.addChild(text);
-    if (newArtworks.art_objects_with_coords.length != 0) {
-      drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
-      allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords]
+    // Check if the current query is already in the set to prevent duplicate API calls
+    if (querySet.has(artQuery.value)) {
+      console.log("Query already executed, doing nothing.");
+      return;
     }
 
+    const newArtworks = await fetchArtworks();
+
+    querySet.add(artQuery.value);
+
+    newArtworks.art_objects_with_coords = removeLoadedImages(newArtworks.art_objects_with_coords);
+
+    if (newArtworks.art_objects_with_coords.length !== 0) {
+      drawArtWorks(newArtworks.art_objects_with_coords, allArtworks.value.length);
+      allArtworks.value = [...allArtworks.value, ...newArtworks.art_objects_with_coords];
+
+      const { averageX, averageY } = getAverage(newArtworks.art_objects_with_coords);
+      const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
+      viewport.animate({ position: middlePoint, scale: 0.15 });
+    }
   } catch (error) {
     console.error("Error loading images:", error);
   }
 };
+
 
 const initializePixi = async () => {
   if (!pixiContainer.value) return;
