@@ -32,6 +32,15 @@
       </form>
 
       <div v-if="selectedArtwork" class="absolute top-32 left-8 shadow-md rounded-md bg-neutral-100 w-96 p-4">
+        <div class="text-right">
+          <button @click="selectedArtworkIndex = null">
+            <svg fill="#000000" height="12px" width="12px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 490 490" xml:space="preserve">
+              <polygon points="456.851,0 245,212.564 33.149,0 0.708,32.337 212.669,245.004 0.708,457.678 33.149,490 245,277.443 456.851,490 
+	489.292,457.678 277.331,245.004 489.292,32.337 " />
+            </svg>
+          </button>
+        </div>
         <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title" class="max-h-[50vh]">
         <h3 class="font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
         <h4>{{ selectedArtwork.long_title }} </h4>
@@ -48,8 +57,16 @@
           <span v-if="!loading">Search using this image</span>
         </button>
         <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" target="_blank"
-          class="ml-4 text-white right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2 mt-2">View
-          at Rijks</a>
+          class="ml-4 text-white right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2 mt-2"><svg
+            v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+            </circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+          <span v-if="!loading">More information</span></a>
       </div>
     </div>
   </div>
