@@ -12,7 +12,8 @@
     <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
       <canvas></canvas>
       <!-- Floating form in the top-left corner -->
-      <form @submit.prevent="fetchAndLoadQueryResults" class="absolute top-8 left-8 shadow-md rounded-md bg-white w-96">
+      <form @submit.prevent="fetchAndLoadQueryResults"
+        class="absolute top-8 left-8 shadow-md rounded-md bg-white w-4/5 lg:w-96">
         <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only">Search</label>
         <input v-model="artQuery" type="search" id="default-search"
           class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
