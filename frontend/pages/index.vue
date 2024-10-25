@@ -34,7 +34,7 @@
       <div v-if="selectedArtwork"
         class="absolute top-28 lg:top-32 left-8 shadow-md rounded-md bg-neutral-100 w-5/6 lg:w-[500px] p-4">
         <div class="text-right mb-2">
-          <button @click="selectedArtworkIndex = null">
+          <button @click="closePopUp">
             <svg fill="#000000" height="12px" width="12px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
               xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 490 490" xml:space="preserve">
               <polygon points="456.851,0 245,212.564 33.149,0 0.708,32.337 212.669,245.004 0.708,457.678 33.149,490 245,277.443 456.851,490 
@@ -83,7 +83,7 @@
 </template>
 <script setup lang="ts">
 import { Viewport } from "pixi-viewport";
-import { Application, Assets, Container, Point, Sprite, Ticker } from "pixi.js";
+import { Application, Assets, Container, Point, Sprite, Ticker, Text } from "pixi.js";
 import { computed, onMounted, ref } from "vue";
 import { Simple } from "~/utils/pixi-cull";
 
@@ -130,12 +130,17 @@ interface Artwork {
 }
 
 // Methods
-const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
-  loading.value = true;
+const closePopUp = () => {
+  selectedArtworkIndex.value = null
+}
 
+const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
   try {
+    loading.value = true;
+
     const url = `${apiBaseUrl}/image?idx=${id}&top_k=${topK.value}`
     const response = await $fetch<Artwork[]>(url);
+
     return response;
   } catch (error) {
     console.error("Error fetching artworks:", error);
@@ -146,11 +151,12 @@ const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
 }
 
 const fetchArtworks = async (): Promise<QueryResponse> => {
-  loading.value = true
-
   try {
+    loading.value = true
+
     const url = `${apiBaseUrl}/query?art_query=${artQuery.value}&top_k=${topK.value}`
     const response: QueryResponse = await $fetch<QueryResponse>(url);
+
     return response;
   } catch (error) {
     console.error("Error fetching artworks:", error);
@@ -237,6 +243,8 @@ const loadImageResults = async (artwork_id: number) => {
 
   let newArtworks = await fetchArtworksById(artwork_id);
 
+  closePopUp();
+
   ArtworkIdSet.add(artwork_id)
 
   drawArtWorks(newArtworks, allArtworks.value.length);
@@ -257,6 +265,8 @@ const fetchAndLoadQueryResults = async () => {
 
     const newArtworks = await fetchArtworks();
 
+    closePopUp();
+
     querySet.add(artQuery.value);
 
     if (newArtworks.art_objects_with_coords.length !== 0) {
@@ -266,6 +276,16 @@ const fetchAndLoadQueryResults = async () => {
       const { averageX, averageY } = getAverage(newArtworks.art_objects_with_coords);
       const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
       viewport.animate({ position: middlePoint, scale: 0.15 });
+
+      let text = new Text({
+        text: artQuery.value, style: {
+          fontFamily: "Arial",
+          fontSize: 128
+        }
+      });
+      text.position = middlePoint;
+
+      container.addChild(text);
     }
   } catch (error) {
     console.error("Error loading images:", error);
