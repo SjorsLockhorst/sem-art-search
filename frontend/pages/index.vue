@@ -266,6 +266,7 @@ const fetchAndLoadQueryResults = async () => {
 
     const newArtworks = await fetchArtworks();
 
+    artQuery.value = "";
     closePopUp();
 
     querySet.add(artQuery.value);
