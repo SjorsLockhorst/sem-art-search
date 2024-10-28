@@ -89,6 +89,7 @@ import { Simple } from "~/utils/pixi-cull";
 
 // Init composables
 const config = useRuntimeConfig()
+const { $toast } = useNuxtApp()
 
 // Local state
 const pixiContainer = ref<HTMLDivElement | null>(null);
@@ -143,7 +144,7 @@ const fetchArtworksById = async (id: number): Promise<Artwork[]> => {
 
     return response;
   } catch (error) {
-    console.error("Error fetching artworks:", error);
+    $toast.error("Error fetching artworks")
     throw error;
   } finally {
     loading.value = false;
@@ -159,7 +160,7 @@ const fetchArtworks = async (): Promise<QueryResponse> => {
 
     return response;
   } catch (error) {
-    console.error("Error fetching artworks:", error);
+    $toast.error("Error fetching artworks")
     throw error;
   } finally {
     loading.value = false;
@@ -288,7 +289,7 @@ const fetchAndLoadQueryResults = async () => {
       container.addChild(text);
     }
   } catch (error) {
-    console.error("Error loading images:", error);
+    $toast.error("Error loading images")
   }
 };
 
