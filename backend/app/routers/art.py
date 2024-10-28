@@ -3,7 +3,6 @@ from typing import Annotated
 import numpy as np
 from fastapi import APIRouter, Query
 from fastapi.exceptions import HTTPException
-from pydantic import Field, PositiveInt
 
 from db.crud import retrieve_best_image_match_w_embedding, retrieve_closest_to_artobject
 from db.models import ArtObjectsWithCoord, ArtQueryWithCoordsResponse
