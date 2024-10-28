@@ -8,29 +8,37 @@
           class="italic text-blue-800">meaning</span>
       </h2>
     </div>
+
     <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
       <canvas class="h-screen"></canvas>
-
       <form @submit.prevent="fetchAndLoadQueryResults"
         class="absolute top-8 left-8 shadow-md rounded-md bg-white w-5/6 lg:w-96">
-        <label for="default-search" class="mb-2 font-medium text-gray-900 sr-only">Search</label>
-        <input v-model="artQuery" type="search" id="default-search"
-          class="block w-full p-4 text-gray-900 bg-neutral-100 rounded-md"
-          placeholder="A woman standing in a black dress" required />
-        <button :disabled="loading" type="submit"
-          class="text-white absolute right-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-4 py-2">
-          <svg v-if="loading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
-            fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-            </circle>
-            <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-            </path>
-          </svg>
-          <span v-if="!loading">Search</span>
-        </button>
+        <div>
+          <label for="hs-trailing-button-add-on-with-icon" class="sr-only">Label</label>
+          <div class="flex rounded-lg shadow-sm">
+            <input v-model="artQuery" type="text" id="hs-trailing-button-add-on-with-icon"
+              name="hs-trailing-button-add-on-with-icon"
+              class="py-3 px-4 block w-full border-gray-200 shadow-sm rounded-s-lg text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none ">
+            <button type="submit"
+              class="w-[2.875rem] h-[2.875rem] shrink-0 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-e-md border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+              <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                </circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <svg v-else class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
       </form>
-
       <div v-if="selectedArtwork"
         class="absolute top-28 lg:top-32 left-8 shadow-md rounded-md bg-neutral-100 w-5/6 lg:w-[500px] p-4">
         <div class="text-right mb-2">
@@ -266,7 +274,6 @@ const fetchAndLoadQueryResults = async () => {
 
     const newArtworks = await fetchArtworks();
 
-    artQuery.value = "";
     closePopUp();
 
     querySet.add(artQuery.value);
@@ -286,6 +293,8 @@ const fetchAndLoadQueryResults = async () => {
         }
       });
       text.position = middlePoint;
+
+      artQuery.value = "";
 
       container.addChild(text);
     }
