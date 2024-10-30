@@ -1,5 +1,7 @@
+from typing import Annotated
+
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.exceptions import HTTPException
 
 from db.crud import retrieve_best_image_match_w_embedding, retrieve_closest_to_artobject
@@ -14,9 +16,11 @@ text_embedder = TextEmbedder(device="cpu")
 
 pca = load_pca()
 
+TopK = Annotated[int, Query(ge=1, le=15)]
+
 
 @router.get("/query", tags=["art"])
-def get_query_nearest_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoordsResponse:
+def get_query_nearest_neighbors(art_query: Annotated[str, Query(max_length=250)], top_k: TopK) -> ArtQueryWithCoordsResponse:
     """
     Get's nearest neighbor images based on given test `query`.
     """
@@ -49,7 +53,7 @@ def get_query_nearest_neighbors(art_query: str, top_k: int) -> ArtQueryWithCoord
 
 
 @router.get("/image", tags=["art"])
-def get_image_nearest_neighbors(idx: int, top_k: int) -> list[ArtObjectsWithCoord]:
+def get_image_nearest_neighbors(idx: Annotated[int, Query(ge=1)], top_k: TopK) -> list[ArtObjectsWithCoord]:
     """
     Get's nearest neighbor images based on given test `query`.
     """
