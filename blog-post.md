@@ -1,23 +1,30 @@
 # Introducing [artexplorer.ai](https://artexplorer.ai)
 
-A search engine that let's you search through artworks based on a 'vibe'.
-Try it out by going to [artexplorer.ai](https://artexplorer.ai), and searching for a 'vibe' like: 
+A search engine that lets you search through artworks based on a 'vibe'.
+Try it out by going to [artexplorer.ai](https://artexplorer.ai), and searching for a vibe
 
 > 'A gloomy landscape in the winter'.
 
 You will be shown the 10 artworks that most fit your query.
-You can also click images to find out more about them, and find more similiar images like them.
+You can also click images to find out more about them, and find more similar images like them.
 
-Currently it supports all public artworks from [Rijksmuseum Amsterdam](https://www.rijksmuseum.nl/en), with the ambition to add art from other open sources at a later moment.
+Currently, it supports all public artworks from [Rijksmuseum Amsterdam](https://www.rijksmuseum.nl/en), with the ambition to add art from other open sources at a later moment.
+## Background
 
-# TLDR; how does it work?
+Imagine this, you just finished your visit to the Amsterdam Rijks Museum and you want to tell your friends about this amazing piece of art that you saw. It was this beautiful painting of a group of people in a bar, having a great time. However, you don't remember the title... Now what?
+
+You could go to [this website](https://randomrijks.com/) which shows you a random artwork from their collection, but that gives you about a 1/500.000 chance each time you request a new artwork. Not ideal. You also can go to [Rijksstudio](https://www.rijksmuseum.nl/nl/rijksstudio) and see if you can find the paiting by keyword or even color, but what if that doesn't work? Wouldn't it be great if you could just normal language, much like asking ChatGPT a question, to find what you are looking for? That is exactly what we thought!
+
+# How does it work?
 
 The art search leverages [CLIP](https://huggingface.co/docs/transformers/model_doc/clip) to map images and texts to vectors in a shared embedding space. 
-To visualize this embedding space, we use [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) to project down from CLIP's 512 dimensions to 2 dimensions (x, y) for visualisation of the embedding space.
+To visualize this embedding space, we use [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) to project down from CLIP's 512 dimensions to 2 dimensions (x, y) for visualization of the embedding space.
 
 ### Embedding pipeline
 A pipeline was created to extract all metadata of images from the [Rijksmuseum API](https://data.rijksmuseum.nl/docs/api/), to fetch the images, embed them with CLIP, and save the embedding vectors in a vector database (we used [pgvector](https://github.com/pgvector/pgvector)).
-This process was sped up by fetching images async, and preventing Python from blocking during embedding using multithreading. Multiprocessing was divide the task amoung several Python processing, speeding up the embedding further and making more efficient use of our compute (we used [runpod](https://www.runpod.io/)'s serverless GPU workers). 
+This process was sped up by fetching images async, and preventing Python from blocking during embedding using multithreading. Multiprocessing was used to divide the task among several Python processing, speeding up the embedding further and making more efficient use of our compute (we used [runpod](https://www.runpod.io/)'s serverless GPU workers). 
+
+![image](/images/projects/art-search/sem-art-etl-drawing.png)
 
 ### Backend
 
@@ -45,6 +52,9 @@ When new artworks come in, we plot them in the pixi canvas, at point:
 ```
 
 The image is loaded from the metadata `image_url`, which is a URL to the image served by the Google CDN.
+To only render images in the current viewport, we adjusted the [pixi-cull](https://github.com/pixi-viewport/pixi-cull) library to be compatible with the latest pixi version.
+
+TODO: Stefan write something here about culling.
 
 
 ### Deployment
@@ -56,19 +66,10 @@ We can decide to scale vertically by increasing to a more performant VPS, or we 
 These were considered overkill for our hobby project purposes.
 
 
-## Background
-
-Imagine this, you just finished your visit to the Amsterdam Rijks Museum and you want to tell your friends about this amazing piece of art that you saw. It was this beautiful painting of a group of people in a bar, having a great time. However, you don't remember the title... Now what?
-
-You could go to [this website](https://randomrijks.com/) which shows you a random artwork from their collection, but that gives you about a 1/500.000 changes each time you request a new artwork. Not ideal. You also can go to [Rijksstudio](https://www.rijksmuseum.nl/nl/rijksstudio) and see if you can find the paiting by keyword or even color, but what if that doesn't work? Wouldn't it be great if you could just normal language, much like asking ChatGPT a question, to find what you are looking for? That is exactly what we thought!
 
 ## The Project
 
 
-
-### Techstack
-
-Explanation of the individual pieces
 
 ### Architecture
 
