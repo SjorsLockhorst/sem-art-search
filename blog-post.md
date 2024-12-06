@@ -172,7 +172,7 @@ As you can see, hosting a simple and fun AI application doesn't have to be expen
 
 This project was a huge learning experience for us! While we were already familiar with PostgreSQL, trying out pgvector was completely new. It was exciting to see how easily we could use it as a vector database. Postgres continues to prove itself as a great starting point for almost any project. You can always switch to a fancy use case specific database when your project needs it.
 
-We also dove deep into making Python more performant when handling heavy IO and compute tasks simultaneously. Our current approach combines multiprocessing, multithreading, and asynchronous IO. While it worked well performance-wise, it turned out to be pretty complex. In hindsight, using serverless workers might have been a better option. By passing batches (e.g., list[tuple[id, image_url]]) to individual workers, we could avoid explicit multiprocessing altogether, keeping the code simpler and easier to maintain.
+We also dove deep into making Python more performant when handling heavy IO and compute tasks simultaneously. Our current approach combines multiprocessing, multithreading, and asynchronous IO. While it worked well performance-wise, it turned out to be pretty complex. In hindsight, using serverless workers might have been a better option. By passing batches (e.g., `list[tuple[id, image_url]]`) to individual workers, we could avoid explicit multiprocessing altogether, keeping the code simpler and easier to maintain.
 
 TODO: Add more here
 
