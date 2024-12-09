@@ -291,8 +291,9 @@ const fetchAndLoadQueryResults = async () => {
 
       let text = new Text({
         text: artQuery.value, style: {
-          fontFamily: "Arial",
-          fontSize: 128
+          fontFamily: "Work Sans",
+          fontSize: 192,
+          fontWeight: "Bold"
         }
       });
       text.position = middlePoint;

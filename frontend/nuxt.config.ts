@@ -5,7 +5,8 @@ export default defineNuxtConfig({
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
     "@nuxt/image",
-    "@nuxtjs/plausible"
+    "@nuxtjs/plausible",
+    "@nuxt/fonts"
   ],
   runtimeConfig: {
     public: {
