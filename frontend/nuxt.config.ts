@@ -16,7 +16,7 @@ export default defineNuxtConfig({
     // Prevent tracking on localhost
     ignoredHostnames: ['localhost'],
     // Set our custom host
-    apiHost: "https://analytics.artexplorer.ai",
+    apiHost: "https://plausible.lockhorst.dev",
     // Enable tracking of outbound links. In our case links to the Rijksmuseum and Github
     autoOutboundTracking: true
   },
