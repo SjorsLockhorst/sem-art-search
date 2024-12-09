@@ -5,6 +5,7 @@ export default defineNuxtConfig({
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
     "@nuxt/image",
+    "@nuxtjs/plausible",
     "@nuxt/fonts"
   ],
   runtimeConfig: {
@@ -12,5 +13,12 @@ export default defineNuxtConfig({
       apiBase: "http://localhost:8000"
     }
   },
-
+  plausible: {
+    // Prevent tracking on localhost
+    ignoredHostnames: ['localhost'],
+    // Set our custom host
+    apiHost: "https://plausible.lockhorst.dev",
+    // Enable tracking of outbound links. In our case links to the Rijksmuseum and Github
+    autoOutboundTracking: true
+  },
 });

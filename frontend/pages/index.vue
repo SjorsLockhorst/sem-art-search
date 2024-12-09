@@ -20,7 +20,7 @@
               name="hs-trailing-button-add-on-with-icon"
               class="py-3 px-4 block w-full border-gray-200 shadow-sm rounded-s-lg text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none ">
             <button type="submit"
-              class="w-[2.875rem] h-[2.875rem] shrink-0 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-e-md border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+              class="w-12 h-12 shrink-0 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-e-md border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
               <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -91,9 +91,26 @@
 </template>
 <script setup lang="ts">
 import { Viewport } from "pixi-viewport";
-import { Application, Assets, Container, Point, Sprite, Ticker, Text } from "pixi.js";
-import { computed, onMounted, ref } from "vue";
+import { Application, Assets, Container, Point, Sprite, Text, Ticker } from "pixi.js";
 import { Simple } from "~/utils/pixi-cull";
+
+// Typing
+interface QueryResponse {
+  query_x: number;
+  query_y: number;
+  art_objects_with_coords: Artwork[]
+}
+
+interface Artwork {
+  original_id: string;
+  image_url: string;
+  artist: string;
+  id: number;
+  long_title: string;
+  x: number;
+  y: number;
+}
+
 
 // Init composables
 const config = useRuntimeConfig()
@@ -120,23 +137,6 @@ const apiBaseUrl = config.public.apiBase
 const WORLD_WIDTH = 20000;
 const WORLD_HEIGHT = 20000;
 const imgWidth = 500;
-
-// Typing
-interface QueryResponse {
-  query_x: number;
-  query_y: number;
-  art_objects_with_coords: Artwork[]
-}
-
-interface Artwork {
-  original_id: string;
-  image_url: string;
-  artist: string;
-  id: number;
-  long_title: string;
-  x: number;
-  y: number;
-}
 
 // Methods
 const closePopUp = () => {
@@ -264,6 +264,9 @@ const loadImageResults = async (artwork_id: number) => {
   const middlePoint = new Point(averageX * WORLD_WIDTH, averageY * WORLD_HEIGHT);
 
   viewport.animate({ position: middlePoint, scale: 0.15 });
+
+  // Keep track how often people use the search by ID functionality
+  useTrackEvent('Search By Id', { props: { method: 'HTTP', artwork_id: artwork_id } })
 }
 
 const fetchAndLoadQueryResults = async () => {
@@ -295,9 +298,13 @@ const fetchAndLoadQueryResults = async () => {
       });
       text.position = middlePoint;
 
+      // Keep track of what prompts people are entering
+      useTrackEvent('Prompt', { props: { method: 'HTTP', query: artQuery.value } })
+
       artQuery.value = "";
 
       container.addChild(text);
+
     }
   } catch (error) {
     $toast.error("Error loading images")
