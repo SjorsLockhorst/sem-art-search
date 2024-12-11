@@ -1,16 +1,19 @@
 <template>
-  <div class="p-4 min-h-screen">
+  <div class="p-4 h-screen flex flex-col">
     <div>
       <h1 class="text-4xl font-bold">
         <span class="italic text-blue-800">Art</span>ificial Intelligence
       </h1>
-      <h2 class="text-l mt-1">Search through Rijksmuseum artworks based on <span
-          class="italic text-blue-800">meaning</span>
-      </h2>
+      <div class="flex justify-between items-center mt-1">
+        <h2 class="text-l">
+          Search through Rijksmuseum artworks based on <span class="italic text-blue-800">meaning</span>
+        </h2>
+        <NuxtLink to="/about" class="text-blue-700 hover:text-blue-800 font-medium">About</NuxtLink>
+      </div>
     </div>
 
-    <div ref="pixiContainer" class="relative w-full h-full mt-4 overflow-hidden border-2 border-black">
-      <canvas class="h-screen"></canvas>
+    <div ref="pixiContainer" class="relative w-full flex-grow mt-4 overflow-hidden border-2 border-black">
+      <canvas class="h-full"></canvas>
       <form @submit.prevent="fetchAndLoadQueryResults"
         class="absolute top-8 left-8 shadow-md rounded-md bg-white w-5/6 lg:w-96">
         <div>
@@ -18,13 +21,12 @@
           <div class="flex rounded-lg shadow-sm">
             <input v-model="artQuery" type="text" id="hs-trailing-button-add-on-with-icon"
               name="hs-trailing-button-add-on-with-icon"
-              class="py-3 px-4 block w-full border-gray-200 shadow-sm rounded-s-lg text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none ">
+              class="py-3 px-4 block w-full border-gray-200 shadow-sm rounded-s-lg text-sm focus:z-10 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none">
             <button type="submit"
               class="w-12 h-12 shrink-0 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-e-md border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
               <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                </circle>
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                 </path>
@@ -54,11 +56,11 @@
           <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title" class="max-h-[40vh] lg:max-h-[50vh]">
         </div>
         <h3 class="text-xl font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
-        <h4>{{ selectedArtwork.long_title }} </h4>
+        <h4>{{ selectedArtwork.long_title }}</h4>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-2 gap-y-2 lg:gap-y-0 mt-4">
           <div>
             <button :disabled="loading" @click="loadImageResults(selectedArtwork.id)"
-              class="w-full flex items-center justify-center space-x-2 text-white  bg-blue-700 border-blue-700 border-2 hover:bg-blue-800 hover:border-blue-800 font-medium rounded-lg px-4 py-2">
+              class="w-full flex items-center justify-center space-x-2 text-white bg-blue-700 border-blue-700 border-2 hover:bg-blue-800 hover:border-blue-800 font-medium rounded-lg px-4 py-2">
               <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -72,16 +74,8 @@
           </div>
           <div>
             <a :href="`https://www.rijksmuseum.nl/en/collection/${selectedArtwork.original_id}`" target="_blank"
-              class="flex items-center justify-center space-x-2 text-blue-700 hover:text-white  border-blue-700 border-2 hover:bg-blue-800 hover:border-blue-800 font-medium rounded-lg px-4 py-2">
-              <svg v-if="loading" class="animate-spin h-5 w-5 text-blue-700" xmlns="http://www.w3.org/2000/svg"
-                fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-              </svg>
-              <span v-if="!loading">More information</span>
-              <span v-else>Loading...</span>
+              class="flex items-center justify-center space-x-2 text-blue-700 hover:text-white border-blue-700 border-2 hover:bg-blue-800 hover:border-blue-800 font-medium rounded-lg px-4 py-2">
+              <span>More information</span>
             </a>
           </div>
         </div>

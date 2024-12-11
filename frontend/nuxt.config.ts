@@ -1,6 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  ssr: false,
   devtools: { enabled: true },
+
   modules: [
     "@nuxtjs/tailwindcss",
     "@vueuse/nuxt",
@@ -8,11 +10,13 @@ export default defineNuxtConfig({
     "@nuxtjs/plausible",
     "@nuxt/fonts"
   ],
+
   runtimeConfig: {
     public: {
       apiBase: "http://localhost:8000"
     }
   },
+
   plausible: {
     // Prevent tracking on localhost
     ignoredHostnames: ['localhost'],
@@ -21,4 +25,6 @@ export default defineNuxtConfig({
     // Enable tracking of outbound links. In our case links to the Rijksmuseum and Github
     autoOutboundTracking: true
   },
+
+  compatibilityDate: "2024-12-11",
 });
