@@ -43,9 +43,27 @@ You can find the source code [here](https://github.com/SjorsLockhorst/sem-art-se
 
 #### 1. API Scarping  🕷️
 
-A pipeline was created to extract all metadata of images from the [Rijksmuseum API](https://data.rijksmuseum.nl/docs/api/).
+To work with the vast collection of the [Rijksmuseum](https://data.rijksmuseum.nl/docs/api/) programmatically, we built a pipeline to extract metadata for all available images. Here’s a breakdown of the options we explored and how we landed on the optimal solution.
 
-TODO: Stefan write a bit about your journey of writing this extraction and landing upon the XML api and stuff.
+#### Initial Approach: Historical Data Dumps
+
+Our first thought was to use the Rijksmuseum's *Historical Data Dumps*. These dumps contain metadata for all objects in their collection, which seemed promising at first. However, the most recent data dump available was from 2020. While this would work for many use cases, we wanted the freshest data possible. So, the search continued.
+
+#### Exploring the Collection JSON API
+
+Next, we considered their *Collection JSON API*, accessible via `/api/{culture}/collection`. This endpoint allows fetching metadata in a convenient JSON format. However, there’s a catch: the API paginates results and imposes a limit of 10,000 records. To retrieve the entire collection, we’d need to split it into chunks of 10,000 or fewer records (by artist, decade, or other attributes). Since there was no straightforward way to achieve this (believe us, we tried), we kept this as a fallback option.
+
+#### The Jackpot: OAI-PMH API
+
+Finally, we found the *OAI-PMH API* (Open Archives Initiative Protocol for Metadata Harvesting). With **metadata harvesting** in the name, it was clear this was designed for our exact needs. This API delivers metadata in various XML formats. After querying the `GET /oai/[api-key]?verb=ListMetadataFormats` endpoint and testing all the available formats, we settled on `oai_WPCM` because it contained all the attributes we needed (e.g., image URL, artist name).
+
+#### Handling Pagination with `resumptionToken`
+
+To extract the data, we had to manage the `resumptionToken` mechanism. The API returns a batch of artworks (e.g., 25) along with a `resumptionToken`. This token is required for subsequent requests to fetch the next batch. Unfortunately, this sequential approach meant we couldn’t easily parallelize the requests to speed up the process. Instead, we kept things simple and wrote a script that repeatedly fetches artworks as long as the `resumptionToken` is provided.
+
+#### Future-Proofing the Code
+
+This implementation is tailored specifically for the Rijksmuseum API. However, we designed our codebase to handle additional sources in the future with minimal changes.
 
 #### 2. Image processing  🖼️ →  🤖  →  📊
 
@@ -61,13 +79,13 @@ Then each process:
 
 Each of these steps runs its own thread.
 
-##### Fetching artworks without embeddings  🖼️
+#### Fetching artworks without embeddings  🖼️
 
 Once we start the embedding phase, we do a simple SQL query, where we fetch all artworks that have no embedding yet.
 Then we divide these artworks over the total amount of processes n.
 We spawn n processes each with their own artworks to embed.
 
-##### Downloading the images ⬇️
+#### Downloading the images ⬇️
 
 Since we have quite a reasonable scale of ~560.000 images, we prefer this to be fast.
 Luckily all images are served via a Google CDN, which is blazingly fast as is.
