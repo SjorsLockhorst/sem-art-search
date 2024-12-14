@@ -53,7 +53,8 @@
           </button>
         </div>
         <div class="flex items-center justify-center mb-4">
-          <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title" class="max-h-[40vh] lg:max-h-[50vh]">
+          <img :src="selectedArtwork.image_url" :alt="selectedArtwork.long_title"
+            :style="{ maxHeight: height - 350 + 'px' }">
         </div>
         <h3 class="text-xl font-bold text-blue-800">{{ selectedArtwork.artist }}</h3>
         <h4>{{ selectedArtwork.long_title }}</h4>
