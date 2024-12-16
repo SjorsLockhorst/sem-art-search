@@ -1,11 +1,11 @@
 <template>
   <div class="p-4 h-screen flex flex-col">
     <div>
-      <h1 class="text-4xl font-bold">
+      <h1 class="text-2xl md:text-4xl font-bold">
         <span class="italic text-blue-800">Art</span>ificial Intelligence
       </h1>
       <div class="flex justify-between items-center mt-1">
-        <h2 class="text-l">
+        <h2 class="text-lg">
           Search through Rijksmuseum artworks based on <span class="italic text-blue-800">meaning</span>
         </h2>
         <NuxtLink to="/about" class="text-blue-700 hover:text-blue-800 font-medium">About</NuxtLink>
