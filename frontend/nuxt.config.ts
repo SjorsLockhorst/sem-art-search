@@ -11,6 +11,18 @@ export default defineNuxtConfig({
     "@nuxt/fonts"
   ],
 
+  app: {
+    head: {
+      script: [
+        { src: "https://cdn.otusanalytics.com/otusanalytics/otus.js", async: true },
+        {
+          innerHTML: `window.otus=window.otus||function(){(otus.q=otus.q||[]).push(arguments)},otus.init=otus.init||function(i){otus.o=i||{}};
+  otus.init({ siteId: 4, endpoint: "https://ingest.otusanalytics.com/e" })`,
+        },
+      ],
+    },
+  },
+
   runtimeConfig: {
     public: {
       apiBase: "http://localhost:8000"
